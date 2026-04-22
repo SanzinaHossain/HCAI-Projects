@@ -77,3 +77,10 @@ def generate_plot_ajax(request):
         filename = 'myplot.png'
         image_url = save_plot(filename)
         return JsonResponse({'image_url': image_url})
+
+
+
+
+
+def train_page(request):
+    return render(request, "demos/modeltraining.html")

@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Training Dashboard</title>
+    <link rel="stylesheet" href="{% static 'modeltraining.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="ml-training-page">
+        <header class="main-page-header">
+            <h1>Machine Learning Model Training</h1>
+        </header>
+
+        <div class="dashboard-grid">
+            
+            <div class="train-container">
+                <div class="box-header">
+                    <h2>Configuration</h2>
+                </div>
+
+                <form class="train-form">
+                    <div class="form-group">
+                        <label for="model-select">Select Model</label>
+                        <div class="select-wrapper">
+                            <select id="model-select" name="model" class="dropdown">
+                                <option value="linear_regression">Linear Regression</option>
+                                <option value="decision_tree">Decision Tree</option>
+                                <option value="knn">K-Nearest Neighbors (KNN)</option>
+                            </select>
+                            <span class="custom-arrow">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group split-section">
+                        <div class="split-labels-row">
+                            <span class="label-text">Train: <strong id="trainLabel">80%</strong></span>
+                            <span class="label-text">Test: <strong id="testLabel">20%</strong></span>
+                        </div>
+                        
+                        <input type="range" id="split-slider" min="10" max="95" value="80" class="slider" 
+                               oninput="updateSplitUI(this.value)">
+                        
+                        <div id="feedback-note" class="feedback-box success">
+                            ✅ Good choice. Healthy balance for training and validation.
+                        </div>
+                    </div>
+
+                    <button type="button" class="train-btn">
+                        Train Model
+                    </button>
+                </form>
+            </div>
+
+            <div class="train-container">
+                <div class="box-header">
+                    <h2>Training Results</h2>
+                </div>
+                <div class="results-content">
+                    <div class="placeholder-icon">📊</div>
+                    <p>Metrics and visualizations will appear here after training.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Updates the percentage labels and the caution message
+         * based on the slider value.
+         */
+        function updateSplitUI(val) {
+            const trainPercent = parseInt(val);
+            const testPercent = 100 - trainPercent;
+            const feedback = document.getElementById('feedback-note');
+            
+            document.getElementById('trainLabel').innerText = trainPercent + '%';
+            document.getElementById('testLabel').innerText = testPercent + '%';
+
+            if (trainPercent > 90) {
+                feedback.innerText = "⚠️ Caution: Risk of Overfitting. The model may memorize noise rather than learn patterns.";
+                feedback.className = "feedback-box error";
+            } else if (trainPercent < 60) {
+                feedback.innerText = "⚠️ Caution: Risk of Underfitting. Not enough data provided for effective learning.";
+                feedback.className = "feedback-box error";
+            } else {
+                feedback.innerText = "✅ Good choice. Healthy balance for training and validation.";
+                feedback.className = "feedback-box success";
+            }
+        }
+    </script>
+</body>
+</html>
