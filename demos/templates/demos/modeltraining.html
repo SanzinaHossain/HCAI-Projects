@@ -22,7 +22,7 @@
                     <h2>Configuration</h2>
                 </div>
 
-                <form class="train-form">
+                <form class="train-form" id="train-form">
                     <div class="form-group">
                         <label for="model-select">Select Model</label>
                         <div class="select-wrapper">
@@ -49,6 +49,20 @@
                         <div id="feedback-note" class="feedback-box success">
                             ✅ Good choice. Healthy balance for training and validation.
                         </div>
+                    </div>
+
+                    <!-- Hyperparameters — injected by JS -->
+                    <div class="form-group">
+                        <label>Hyperparameters</label>
+                        <div id="hp-controls"></div>
+                        <small id="hp-note" style="color:#888;display:block;margin-top:6px;"></small>
+                    </div>
+
+                    <!-- Evaluation metric — injected by JS -->
+                    <div class="form-group">
+                        <label>Evaluation Metric</label>
+                        <div id="metric-pills" class="metric-pills"></div>
+                        <input type="hidden" name="metric" id="metric-hidden" value="">
                     </div>
 
                     <button type="button" class="train-btn">
@@ -94,6 +108,152 @@
                 feedback.className = "feedback-box success";
             }
         }
+
+        // ── Model definitions ─────────────────────────────────────────────
+        const MODELS = {
+            linear_regression: {
+                task: 'regression',
+                note: 'No major hyperparameters. fit_intercept adds a bias/constant term.',
+                hp: [
+                    { id: 'fit_intercept', label: 'Fit intercept', type: 'select', options: ['True', 'False'], default: 'True' }
+                ]
+            },
+            decision_tree: {
+                task: 'both',
+                note: 'Lower max_depth prevents overfitting. Try values between 3–10.',
+                hp: [
+                    { id: 'max_depth',         label: 'Max depth',         type: 'range',  min: 1, max: 20, default: 5 },
+                    { id: 'min_samples_split',  label: 'Min samples split', type: 'range',  min: 2, max: 20, default: 2 },
+                    { id: 'criterion',          label: 'Criterion',         type: 'select', options: ['gini', 'entropy', 'log_loss'], default: 'gini' }
+                ]
+            },
+            knn: {
+                task: 'both',
+                note: 'Use odd k to avoid ties. p=1 is Manhattan distance, p=2 is Euclidean.',
+                hp: [
+                    { id: 'n_neighbors', label: 'n_neighbors (k)', type: 'range',  min: 1, max: 30, default: 5 },
+                    { id: 'weights',     label: 'Weights',         type: 'select', options: ['uniform', 'distance'], default: 'uniform' },
+                    { id: 'p',           label: 'Distance (p)',    type: 'select', options: ['1', '2'], default: '2' }
+                ]
+            }
+        };
+
+        const METRICS = {
+            regression:     ['R2', 'MSE', 'MAE', 'RMSE'],
+            classification: ['Accuracy', 'F1', 'Precision', 'Recall'],
+            both:           ['Accuracy', 'F1', 'Precision', 'Recall', 'R2', 'MSE']
+        };
+
+        // ── Render hyperparameter controls ────────────────────────────────
+        function renderHP(modelKey) {
+            const model = MODELS[modelKey];
+            const container = document.getElementById('hp-controls');
+            container.innerHTML = '';
+
+            // Remove previously injected hidden inputs
+            document.querySelectorAll('.hp-hidden-input').forEach(el => el.remove());
+
+            model.hp.forEach(h => {
+                const row = document.createElement('div');
+                row.className = 'hp-row';
+
+                const lbl = document.createElement('label');
+                lbl.textContent = h.label;
+                lbl.className = 'hp-label';
+                row.appendChild(lbl);
+
+                if (h.type === 'range') {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'hp-range-wrapper';
+
+                    const slider = document.createElement('input');
+                    slider.type = 'range';
+                    slider.min = h.min;
+                    slider.max = h.max;
+                    slider.value = h.default;
+                    slider.step = 1;
+                    slider.className = 'slider';
+
+                    const valDisplay = document.createElement('span');
+                    valDisplay.className = 'hp-val';
+                    valDisplay.textContent = h.default;
+
+                    // Hidden input so the value is submitted with the form
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'hp_' + h.id;
+                    hidden.value = h.default;
+                    hidden.className = 'hp-hidden-input';
+
+                    slider.addEventListener('input', function () {
+                        valDisplay.textContent = this.value;
+                        hidden.value = this.value;
+                    });
+
+                    wrapper.appendChild(slider);
+                    wrapper.appendChild(valDisplay);
+                    row.appendChild(wrapper);
+                    document.getElementById('train-form').appendChild(hidden);
+
+                } else if (h.type === 'select') {
+                    const sel = document.createElement('select');
+                    sel.name = 'hp_' + h.id;
+                    sel.className = 'dropdown';
+
+                    h.options.forEach(o => {
+                        const opt = document.createElement('option');
+                        opt.value = o;
+                        opt.textContent = o;
+                        if (o === h.default) opt.selected = true;
+                        sel.appendChild(opt);
+                    });
+
+                    row.appendChild(sel);
+                }
+
+                container.appendChild(row);
+            });
+
+            document.getElementById('hp-note').textContent = model.note;
+        }
+
+        // ── Render evaluation metric pills ────────────────────────────────
+        function renderMetrics(modelKey) {
+            const task = MODELS[modelKey].task;
+            const metrics = METRICS[task] || METRICS['regression'];
+            const container = document.getElementById('metric-pills');
+            container.innerHTML = '';
+
+            document.getElementById('metric-hidden').value = metrics[0];
+
+            metrics.forEach((m, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = m;
+                btn.className = 'metric-pill' + (i === 0 ? ' active' : '');
+
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.metric-pill').forEach(p => p.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('metric-hidden').value = m;
+                });
+
+                container.appendChild(btn);
+            });
+        }
+
+        // ── On model change ───────────────────────────────────────────────
+        document.getElementById('model-select').addEventListener('change', function () {
+            renderHP(this.value);
+            renderMetrics(this.value);
+        });
+
+        // ── Init on page load ─────────────────────────────────────────────
+        (function init() {
+            const defaultModel = document.getElementById('model-select').value;
+            renderHP(defaultModel);
+            renderMetrics(defaultModel);
+        })();
     </script>
 </body>
 </html>
