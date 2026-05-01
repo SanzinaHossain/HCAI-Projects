@@ -10,6 +10,18 @@ from django.shortcuts import render
 from .forms import CSVUploadForm
 from django.http import HttpResponse, JsonResponse
 
+
+# For model training
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.core.exceptions import ValidationError
+import json
+import logging
+from .ml_models import ModelTrainer
+logger = logging.getLogger(__name__)
+
 def index(request):
     return HttpResponse("Welcome to Project 1!")
 
@@ -80,7 +92,20 @@ def generate_plot_ajax(request):
 
 
 
-
+# Model training views
 
 def train_page(request):
     return render(request, "demos/mtrain.html")
+
+def train_model_form_view(request):
+    """Handle traditional form submission"""
+    if request.method == 'POST':
+        model_name = request.POST.get('model')
+        split_percentage = int(request.POST.get('split_percentage', 80))
+        
+        trainer = ModelTrainer()
+        results = trainer.train_model(model_name, split_percentage)
+        
+        return render(request, 'demos/mtrain.html', {'results': results})
+    
+    return render(request, 'demos/mtrain.html')

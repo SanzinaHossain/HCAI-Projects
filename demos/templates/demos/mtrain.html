@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Model Training Dashboard</title>
     <link rel="stylesheet" href="{% static 'mtrain.css' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -22,7 +22,10 @@
                     <h2>Model Setup</h2>
                 </div>
 
-                <form class="train-form">
+                <!-- Traditional form submission -->
+                <form class="train-form" method="POST" action="{% url 'demos:train_model_form' %}">
+                    {% csrf_token %}
+                    
                     <div class="form-group">
                         <label for="model-select">Select Model</label>
                         <div class="select-wrapper">
@@ -30,6 +33,8 @@
                                 <option value="linear_regression">Linear Regression</option>
                                 <option value="decision_tree">Decision Tree</option>
                                 <option value="knn">K-Nearest Neighbors (KNN)</option>
+                                <option value="svm">Support Vector Machine (SVM)</option>
+                                <option value="random_forest">Random Forest</option>
                             </select>
                             <span class="custom-arrow">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -43,7 +48,7 @@
                             <span class="label-text">Test: <strong id="testLabel">20%</strong></span>
                         </div>
                         
-                        <input type="range" id="split-slider" min="10" max="95" value="80" class="slider" 
+                        <input type="range" id="split-slider" name="split_percentage" min="10" max="95" value="80" class="slider"
                                oninput="updateSplitUI(this.value)">
                         
                         <div id="feedback-note" class="feedback-box success">
@@ -51,7 +56,7 @@
                         </div>
                     </div>
 
-                    <button type="button" class="train-btn">
+                    <button type="submit" class="train-btn">
                         Train Model
                     </button>
                 </form>
@@ -62,8 +67,88 @@
                     <h2>Training Results</h2>
                 </div>
                 <div class="results-content">
-                    <div class="placeholder-icon">📊</div>
-                    <p>Metrics and visualizations will appear here after training.</p>
+                    {% if results %}
+                        <!-- Split Results into Two Sections -->
+                        <div class="results-split">
+                            
+                            <!-- LEFT SECTION: Model Info -->
+                            <div class="results-left">
+                                <div class="info-card">
+                                    <div class="card-icon">🤖</div>
+                                    <h3 class="card-title">Model Details</h3>
+                                    <div class="info-item">
+                                        <span class="info-label">Model Name</span>
+                                        <span class="info-value">{{ results.model_name }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Train Split</span>
+                                        <span class="info-value">{{ results.train_split }}%</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Test Split</span>
+                                        <span class="info-value">{{ results.test_split }}%</span>
+                                    </div>
+                                    <!-- <div class="info-item">
+                                        <span class="info-label">Training Time</span>
+                                        <span class="info-value">{{ results.training_time|floatformat:3 }} sec</span>
+                                    </div> -->
+                                </div>
+                            </div>
+                            
+                            <!-- RIGHT SECTION: Performance Metrics -->
+                            <div class="results-right">
+                                <div class="performance-card">
+                                    <div class="card-icon">📊</div>
+                                    <h3 class="card-title">Model Performance</h3>
+                                    <div class="metrics-grid">
+                                        {% for key, value in results.metrics.items %}
+                                            <div class="metric-card">
+                                                <span class="metric-name">{{ key }}:</span>
+                                                <span class="metric-value">{{ value }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Evaluation Box (inside right section) -->
+                                <div class="evaluation-card">
+                                    <h4>🎯 Performance Evaluation</h4>
+                                    {% for key, value in results.metrics.items %}
+                                        {% if key == "F1-Score" %}
+                                            {% if value >= 0.95 %}
+                                                <p class="evaluation-outstanding">🏆 OUTSTANDING MODEL — Exceptional performance for production</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: This model is production-ready! 🚀</p>
+                                            {% elif value >= 0.90 %}
+                                                <p class="evaluation-excellent">⭐ EXCELLENT MODEL — Highly reliable</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: This model is production-ready! 🚀</p>
+                                            {% elif value >= 0.80 %}
+                                                <p class="evaluation-verygood">✅ VERY GOOD MODEL — Strong performance</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Good model, but consider testing on more data.</p>
+                                            {% elif value >= 0.70 %}
+                                                <p class="evaluation-good">📈 GOOD MODEL — Acceptable for most tasks</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Good model, but consider testing on more data.</p>
+                                            {% elif value >= 0.60 %}
+                                                <p class="evaluation-warning">⚠️ NEEDS IMPROVEMENT — Consider feature engineering</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Try Random Forest or tune hyperparameters for better results.</p>
+                                            {% else %}
+                                                <p class="evaluation-poor">❌ POOR MODEL — Try different model or more data</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Try Random Forest or tune hyperparameters for better results.</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                        </div>
+                    {% elif error %}
+                        <div class="error-box">
+                            <h3>❌ Error</h3>
+                            <p>{{ error }}</p>
+                        </div>
+                    {% else %}
+                        <div class="placeholder-icon">📊</div>
+                        <p>Select a model and click "Train Model" to see results.</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -71,10 +156,6 @@
     </div>
 
     <script>
-        /**
-         * Updates the percentage labels and the caution message
-         * based on the slider value.
-         */
         function updateSplitUI(val) {
             const trainPercent = parseInt(val);
             const testPercent = 100 - trainPercent;
