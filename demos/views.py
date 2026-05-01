@@ -83,4 +83,4 @@ def generate_plot_ajax(request):
 
 
 def train_page(request):
-    return render(request, "demos/modeltraining.html")
+    return render(request, "demos/mtrain.html")
