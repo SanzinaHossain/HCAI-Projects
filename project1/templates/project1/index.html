@@ -1,12 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'project1/style.css' %}" />
-{% endblock %} {% block content %}
-
 <div class="box">
-  <div class="title-container">
-    <div class="title">Project 1: Automated Machine Learning</div>
-  </div>
-
   <div class="main-text">
     <p class="centered-text">
       Upload your dataset, visualize it, and train machine learning models.
@@ -15,5 +7,3 @@
     {% include 'project1/upload.html' %}
   </div>
 </div>
-
-{% endblock %}

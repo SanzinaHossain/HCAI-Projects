@@ -8,10 +8,12 @@
   <p class="error-message">{{ error }}</p>
   {% endif %} {% if data_preview %}
   <div class="dataset-result">
-    <h2>Dataset Uploaded Successfully</h2>
-
     <h3>Dataset Preview</h3>
-    <div class="table-container">{{ data_preview|safe }}</div>
+    <div class="">{{ data_preview|safe }}</div>
+    <form method="post" action="{% url 'project1:train' %}">
+      {% csrf_token %}
+      <button type="submit">Train Model</button>
+    </form>
   </div>
   {% endif %}
 </div>
