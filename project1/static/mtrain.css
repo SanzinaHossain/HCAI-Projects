@@ -1,0 +1,460 @@
+/* demos/static/mtrain.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: white;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#ml-training-page {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.main-page-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.main-page-header h1 {
+    color: #1a1a2e;
+    font-weight: 700;
+    font-size: 1.8rem;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.train-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
+}
+
+.train-container:hover {
+    transform: translateY(-2px);
+}
+
+.box-header {
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+}
+
+.box-header h2 {
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.train-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #555;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.select-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.dropdown {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    font-family: 'Inter', sans-serif;
+}
+
+.dropdown:hover {
+    border-color: #667eea;
+}
+
+.dropdown:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.custom-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #667eea;
+}
+
+.split-section {
+    gap: 10px;
+}
+
+.split-labels-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
+.label-text {
+    font-size: 12px;
+    color: #666;
+}
+
+.label-text strong {
+    color: #667eea;
+    font-size: 14px;
+}
+
+.slider {
+    width: 100%;
+    height: 5px;
+    border-radius: 5px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    background: #764ba2;
+}
+
+.feedback-box {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.feedback-box.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.feedback-box.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.train-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 5px;
+}
+
+.train-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.train-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.results-content {
+    min-height: 450px;
+}
+
+.placeholder-icon {
+    font-size: 40px;
+    text-align: center;
+    margin: 35px 0 15px 0;
+}
+
+.results-content p {
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+}
+
+/* Split Results Layout - HORIZONTALLY SMALLER */
+.results-split {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 15px;
+}
+
+/* LEFT SECTION - Model Info Card */
+.results-left {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 3px;
+}
+
+.info-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.card-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #667eea;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+    background: #f0f0f0;
+    padding: 3px 10px;
+    border-radius: 15px;
+}
+
+/* RIGHT SECTION - Performance Card */
+.results-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.performance-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.metric-card {
+    background: #f8f9fa;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-align: center;
+    transition: all 0.2s ease;
+    border-left: 3px solid #667eea;
+}
+
+.metric-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.metric-name {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.metric-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+    color: #1a1a2e;
+}
+
+/* Evaluation Card */
+.evaluation-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    padding: 12px 15px;
+    border-left: 3px solid #667eea;
+}
+
+.evaluation-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.evaluation-outstanding,
+.evaluation-excellent,
+.evaluation-verygood,
+.evaluation-good,
+.evaluation-warning,
+.evaluation-poor {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 11px;
+    margin: 8px 0;
+}
+
+.evaluation-outstanding {
+    background: #d4edda;
+    color: #155724;
+}
+
+.evaluation-excellent {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.evaluation-verygood {
+    background: #d4edda;
+    color: #155724;
+}
+
+.evaluation-good {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.evaluation-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.evaluation-poor {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.evaluation-recommendation {
+    font-size: 10px;
+    color: #1a1a2e;
+    padding: 6px 10px;
+    background: white;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+.error-box {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #f5c6cb;
+    font-size: 13px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.results-split {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .results-split {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .main-page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .train-container {
+        padding: 15px;
+    }
+}
