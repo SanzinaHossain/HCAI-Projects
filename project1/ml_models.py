@@ -1,5 +1,6 @@
 # demos/ml_models.py
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
@@ -8,44 +9,85 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-#import time
+from sklearn.preprocessing import LabelEncoder
 
 class ModelTrainer:
     """
-    Handles model training and evaluation with demo data (CLASSIFICATION)
+    Handles model training and evaluation with uploaded CSV data (CLASSIFICATION)
     """
     
     def __init__(self):
-        # Generate demo dataset for classification
-        self.X_full, self.y_full = self._get_demo_data()
+        # Initialize with no data
+        self.X_full = None
+        self.y_full = None
+        self.data = None
+        self.target_column = None
     
-    def _get_demo_data(self):
-        """Generate synthetic demo dataset for classification (binary classification)"""
-        np.random.seed(42)
-        n_samples = 1000
-        n_features = 5
+    def load_data(self, file_path):
+        """Load dataset from CSV file path"""
+        self.data = pd.read_csv(file_path)
+        print(f"Dataset loaded: {self.data.shape}")
+        print(f"Columns available: {list(self.data.columns)}")
+        return self.data
+    
+    def prepare_data(self, target_column):
+        """Prepare features and target from loaded data"""
+        if self.data is None:
+            raise ValueError("No data loaded. Call load_data() first.")
         
-        # Generate features
-        X = np.random.randn(n_samples, n_features)
+        self.target_column = target_column
         
-        # Generate binary target (0 or 1) for classification
-        # Create a decision boundary based on features
-        linear_combination = 2*X[:, 0] + 1.5*X[:, 1] - X[:, 2] + 0.5*X[:, 3]
-        probability = 1 / (1 + np.exp(-linear_combination))  # Sigmoid function
-        y = (probability > 0.5).astype(int)  # Binary classification
+        # Separate features and target
+        X = self.data.drop(columns=[target_column])
+        y = self.data[target_column]
         
-        return X, y
+        # Handle categorical features (convert to numeric)
+        X = self._encode_categorical_features(X)
+        
+        # Handle categorical target
+        if y.dtype == 'object':
+            le = LabelEncoder()
+            y = le.fit_transform(y)
+            print(f"Target classes: {dict(zip(le.classes_, range(len(le.classes_))))}")
+        
+        # Convert to numpy arrays
+        self.X_full = X.values.astype(np.float32)
+        self.y_full = y.values.astype(np.int32)
+        
+        print(f"Prepared data: {self.X_full.shape[0]} samples, {self.X_full.shape[1]} features")
+        return self.X_full, self.y_full
+    
+    def _encode_categorical_features(self, X):
+        """Convert categorical columns to numeric using one-hot encoding"""
+        # Select categorical columns
+        categorical_cols = X.select_dtypes(include=['object']).columns
+        
+        if len(categorical_cols) > 0:
+            print(f"Encoding categorical columns: {list(categorical_cols)}")
+            # One-hot encode categorical columns
+            X = pd.get_dummies(X, columns=categorical_cols, drop_first=True)
+        
+        # Handle any remaining non-numeric columns
+        for col in X.columns:
+            if X[col].dtype == 'object':
+                le = LabelEncoder()
+                X[col] = le.fit_transform(X[col].astype(str))
+        
+        return X
     
     def train_model(self, model_name, split_percentage):
         """Train the selected model with given split percentage"""
         
+        if self.X_full is None or self.y_full is None:
+            raise ValueError("No data prepared. Call prepare_data() first with target column name.")
         
         # Split data based on user's preference
         test_size = 1 - (split_percentage / 100)
         X_train, X_test, y_train, y_test = train_test_split(
             self.X_full, self.y_full,
             test_size=test_size,
-            random_state=42
+            random_state=42,
+            stratify=self.y_full  # Better for imbalanced datasets
         )
         
         # Standardize features
@@ -62,29 +104,36 @@ class ModelTrainer:
         
         # Calculate classification metrics
         accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
-        recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
-        f1 = f1_score(y_test, y_pred, average='binary', zero_division=0)
+        
+        # Handle binary vs multi-class metrics
+        unique_classes = np.unique(self.y_full)
+        if len(unique_classes) == 2:
+            # Binary classification
+            precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
+            recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
+            f1 = f1_score(y_test, y_pred, average='binary', zero_division=0)
+        else:
+            # Multi-class classification
+            precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+            recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+            f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
         
         # Calculate confusion matrix
         cm = confusion_matrix(y_test, y_pred)
         
         metrics = {
             'Accuracy': round(accuracy, 4),
-            #'Precision': round(precision, 4),
-            #'Recall': round(recall, 4),
+            'Precision': round(precision, 4),
+            'Recall': round(recall, 4),
             'F1-Score': round(f1, 4),
-            #'Confusion Matrix': f"[[{cm[0][0]}, {cm[0][1]}], [{cm[1][0]}, {cm[1][1]}]]"
         }
-        
-       
         
         # Model display names
         model_display_names = {
             'linear_regression': 'Logistic Regression',
             'decision_tree': 'Decision Tree Classifier',
-            'knn': 'K-Nearest Neighbors Classifier',
-            'svm': 'Support Vector Machine Classifier',
+            'knn': 'K-Nearest Neighbors',
+            'svm': 'Support Vector Machine',
             'random_forest': 'Random Forest Classifier'
         }
         
@@ -94,6 +143,9 @@ class ModelTrainer:
             'train_split': split_percentage,
             'test_split': 100 - split_percentage,
             'metrics': metrics,
+            'num_samples': self.X_full.shape[0],
+            'num_features': self.X_full.shape[1],
+            'num_classes': len(unique_classes)
         }
     
     def _get_model(self, model_name):

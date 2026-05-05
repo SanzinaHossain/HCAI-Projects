@@ -22,14 +22,28 @@
                     <h2>Model Setup</h2>
                 </div>
 
-                <form class="train-form" method="POST" action="{% url 'project1:train_model_form' %}">
+                <!-- Traditional form submission -->
+                <form class="train-form" method="POST" action="{% url 'project1:mtrain' %}">
                     {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="target_column">Select Target Column (What to predict)</label>
+                        <div class="select-wrapper">
+                            <select id="target_column" name="target_column" class="dropdown" required>
+                                <option value="">-- Select target column --</option>
+                                {% for column in columns %}
+                                    <option value="{{ column }}">{{ column }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <small>Choose the column you want to predict</small>
+                    </div>
                     
                     <div class="form-group">
                         <label for="model-select">Select Model</label>
                         <div class="select-wrapper">
-                            <select id="model-select" name="model" class="dropdown" onchange="updateHyperparams(this.value)">
-                                <option value="linear_regression">Linear Regression</option>
+                            <select id="model-select" name="model_name" class="dropdown" onchange="updateHyperparams(this.value)">
+                                <option value="linear_regression">Logistic Regression</option>
                                 <option value="decision_tree">Decision Tree</option>
                                 <option value="knn">K-Nearest Neighbors (KNN)</option>
                                 <option value="svm">Support Vector Machine (SVM)</option>
@@ -72,7 +86,7 @@
                     <h2>Training Results</h2>
                 </div>
                 <div class="results-content">
-                    {% if results %}
+                    {% if training_result %}
                         <div class="results-split">
                             
                             <div class="results-left">
@@ -81,15 +95,23 @@
                                     <h3 class="card-title">Model Details</h3>
                                     <div class="info-item">
                                         <span class="info-label">Model Name</span>
-                                        <span class="info-value">{{ results.model_name }}</span>
+                                        <span class="info-value">{{ training_result.model_name }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">Train Split</span>
-                                        <span class="info-value">{{ results.train_split }}%</span>
+                                        <span class="info-value">{{ training_result.train_split }}%</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">Test Split</span>
-                                        <span class="info-value">{{ results.test_split }}%</span>
+                                        <span class="info-value">{{ training_result.test_split }}%</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Samples</span>
+                                        <span class="info-value">{{ training_result.num_samples }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Features</span>
+                                        <span class="info-value">{{ training_result.num_features }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -99,7 +121,7 @@
                                     <div class="card-icon">📊</div>
                                     <h3 class="card-title">Model Performance</h3>
                                     <div class="metrics-grid">
-                                        {% for key, value in results.metrics.items %}
+                                        {% for key, value in training_result.metrics.items %}
                                             <div class="metric-card">
                                                 <span class="metric-name">{{ key }}:</span>
                                                 <span class="metric-value">{{ value }}</span>
@@ -110,7 +132,7 @@
                                 
                                 <div class="evaluation-card">
                                     <h4>🎯 Performance Evaluation</h4>
-                                    {% for key, value in results.metrics.items %}
+                                    {% for key, value in training_result.metrics.items %}
                                         {% if key == "F1-Score" %}
                                             {% if value >= 0.95 %}
                                                 <p class="evaluation-outstanding">🏆 OUTSTANDING MODEL — Exceptional performance for production</p>
@@ -144,7 +166,7 @@
                         </div>
                     {% else %}
                         <div class="placeholder-icon">📊</div>
-                        <p>Select a model and click "Train Model" to see results.</p>
+                        <p>Select a target column, model, and click "Train Model" to see results.</p>
                     {% endif %}
                 </div>
             </div>
