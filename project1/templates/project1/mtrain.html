@@ -22,14 +22,13 @@
                     <h2>Model Setup</h2>
                 </div>
 
-                <!-- Traditional form submission -->
                 <form class="train-form" method="POST" action="{% url 'project1:train_model_form' %}">
                     {% csrf_token %}
                     
                     <div class="form-group">
                         <label for="model-select">Select Model</label>
                         <div class="select-wrapper">
-                            <select id="model-select" name="model" class="dropdown">
+                            <select id="model-select" name="model" class="dropdown" onchange="updateHyperparams(this.value)">
                                 <option value="linear_regression">Linear Regression</option>
                                 <option value="decision_tree">Decision Tree</option>
                                 <option value="knn">K-Nearest Neighbors (KNN)</option>
@@ -40,6 +39,12 @@
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                             </span>
                         </div>
+                    </div>
+
+                    <!-- Dynamic Hyperparameters Section -->
+                    <div id="hyperparams-section" class="form-group">
+                        <label>Hyperparameters</label>
+                        <div id="hyperparams-container"></div>
                     </div>
 
                     <div class="form-group split-section">
@@ -68,10 +73,8 @@
                 </div>
                 <div class="results-content">
                     {% if results %}
-                        <!-- Split Results into Two Sections -->
                         <div class="results-split">
                             
-                            <!-- LEFT SECTION: Model Info -->
                             <div class="results-left">
                                 <div class="info-card">
                                     <div class="card-icon">🤖</div>
@@ -88,14 +91,9 @@
                                         <span class="info-label">Test Split</span>
                                         <span class="info-value">{{ results.test_split }}%</span>
                                     </div>
-                                    <!-- <div class="info-item">
-                                        <span class="info-label">Training Time</span>
-                                        <span class="info-value">{{ results.training_time|floatformat:3 }} sec</span>
-                                    </div> -->
                                 </div>
                             </div>
                             
-                            <!-- RIGHT SECTION: Performance Metrics -->
                             <div class="results-right">
                                 <div class="performance-card">
                                     <div class="card-icon">📊</div>
@@ -110,7 +108,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Evaluation Box (inside right section) -->
                                 <div class="evaluation-card">
                                     <h4>🎯 Performance Evaluation</h4>
                                     {% for key, value in results.metrics.items %}
@@ -156,6 +153,292 @@
     </div>
 
     <script>
+        const HYPERPARAMS = {
+            linear_regression: [
+                {
+                    name: "fit_intercept",
+                    label: "Fit Intercept",
+                    type: "select",
+                    options: [
+                        { value: "true",  text: "True"  },
+                        { value: "false", text: "False" }
+                    ],
+                    default: "true",
+                    hint: "Whether to calculate the intercept for this model."
+                },
+                {
+                    name: "normalize",
+                    label: "Normalize",
+                    type: "select",
+                    options: [
+                        { value: "false", text: "False" },
+                        { value: "true",  text: "True"  }
+                    ],
+                    default: "false",
+                    hint: "Normalize regressors before fitting."
+                }
+            ],
+            decision_tree: [
+                {
+                    name: "max_depth",
+                    label: "Max Depth",
+                    type: "slider",
+                    min: 1, max: 50, step: 1, default: 5,
+                    hint: "Maximum depth of the tree. Higher values risk overfitting."
+                },
+                {
+                    name: "min_samples_split",
+                    label: "Min Samples Split",
+                    type: "slider",
+                    min: 2, max: 20, step: 1, default: 2,
+                    hint: "Minimum samples required to split an internal node."
+                },
+                {
+                    name: "min_samples_leaf",
+                    label: "Min Samples Leaf",
+                    type: "slider",
+                    min: 1, max: 20, step: 1, default: 1,
+                    hint: "Minimum samples required to be at a leaf node."
+                },
+                {
+                    name: "criterion",
+                    label: "Criterion",
+                    type: "select",
+                    options: [
+                        { value: "gini",    text: "Gini"    },
+                        { value: "entropy", text: "Entropy" }
+                    ],
+                    default: "gini",
+                    hint: "Function to measure the quality of a split."
+                }
+            ],
+            knn: [
+                {
+                    name: "n_neighbors",
+                    label: "N Neighbors (K)",
+                    type: "slider",
+                    min: 1, max: 50, step: 1, default: 5,
+                    hint: "Number of neighbors to use. Lower K = more complex boundary."
+                },
+                {
+                    name: "weights",
+                    label: "Weights",
+                    type: "select",
+                    options: [
+                        { value: "uniform",  text: "Uniform"  },
+                        { value: "distance", text: "Distance" }
+                    ],
+                    default: "uniform",
+                    hint: "Weight function used in prediction."
+                },
+                {
+                    name: "metric",
+                    label: "Distance Metric",
+                    type: "select",
+                    options: [
+                        { value: "euclidean", text: "Euclidean" },
+                        { value: "manhattan", text: "Manhattan" },
+                        { value: "minkowski", text: "Minkowski" }
+                    ],
+                    default: "euclidean",
+                    hint: "Distance metric for the tree."
+                },
+                {
+                    name: "algorithm",
+                    label: "Algorithm",
+                    type: "select",
+                    options: [
+                        { value: "auto",      text: "Auto"      },
+                        { value: "ball_tree", text: "Ball Tree" },
+                        { value: "kd_tree",   text: "KD Tree"   },
+                        { value: "brute",     text: "Brute"     }
+                    ],
+                    default: "auto",
+                    hint: "Algorithm used to compute nearest neighbors."
+                }
+            ],
+            svm: [
+                {
+                    name: "C",
+                    label: "Regularization (C)",
+                    type: "slider",
+                    min: 1, max: 100, step: 1, default: 1,
+                    hint: "Regularization parameter. Smaller C = wider margin, more misclassification."
+                },
+                {
+                    name: "kernel",
+                    label: "Kernel",
+                    type: "select",
+                    options: [
+                        { value: "rbf",     text: "RBF (Gaussian)" },
+                        { value: "linear",  text: "Linear"         },
+                        { value: "poly",    text: "Polynomial"     },
+                        { value: "sigmoid", text: "Sigmoid"        }
+                    ],
+                    default: "rbf",
+                    hint: "Kernel type used in the algorithm."
+                },
+                {
+                    name: "gamma",
+                    label: "Gamma",
+                    type: "select",
+                    options: [
+                        { value: "scale", text: "Scale" },
+                        { value: "auto",  text: "Auto"  }
+                    ],
+                    default: "scale",
+                    hint: "Kernel coefficient for 'rbf', 'poly', and 'sigmoid'."
+                },
+                {
+                    name: "degree",
+                    label: "Degree (Poly only)",
+                    type: "slider",
+                    min: 2, max: 10, step: 1, default: 3,
+                    hint: "Degree of the polynomial kernel function."
+                }
+            ],
+            random_forest: [
+                {
+                    name: "n_estimators",
+                    label: "N Estimators",
+                    type: "slider",
+                    min: 10, max: 500, step: 10, default: 100,
+                    hint: "Number of trees in the forest. More trees = better but slower."
+                },
+                {
+                    name: "max_depth",
+                    label: "Max Depth",
+                    type: "slider",
+                    min: 1, max: 50, step: 1, default: 10,
+                    hint: "Maximum depth of each tree."
+                },
+                {
+                    name: "min_samples_split",
+                    label: "Min Samples Split",
+                    type: "slider",
+                    min: 2, max: 20, step: 1, default: 2,
+                    hint: "Minimum samples required to split an internal node."
+                },
+                {
+                    name: "max_features",
+                    label: "Max Features",
+                    type: "select",
+                    options: [
+                        { value: "sqrt", text: "sqrt" },
+                        { value: "log2", text: "log2" },
+                        { value: "none", text: "None (all)" }
+                    ],
+                    default: "sqrt",
+                    hint: "Number of features to consider at each split."
+                },
+                {
+                    name: "bootstrap",
+                    label: "Bootstrap",
+                    type: "select",
+                    options: [
+                        { value: "true",  text: "True"  },
+                        { value: "false", text: "False" }
+                    ],
+                    default: "true",
+                    hint: "Whether to use bootstrap samples when building trees."
+                }
+            ]
+        };
+
+        function updateHyperparams(modelKey) {
+            const container = document.getElementById('hyperparams-container');
+            container.innerHTML = '';
+
+            const params = HYPERPARAMS[modelKey] || [];
+
+            params.forEach(function(param) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-group split-section';
+
+                if (param.type === 'slider') {
+                    const labelRow = document.createElement('div');
+                    labelRow.className = 'split-labels-row';
+
+                    const labelLeft = document.createElement('span');
+                    labelLeft.className = 'label-text';
+                    labelLeft.textContent = param.label + ': ';
+
+                    const valueStrong = document.createElement('strong');
+                    valueStrong.id = 'hp_label_' + param.name;
+                    valueStrong.textContent = param.default;
+
+                    const hintSpan = document.createElement('span');
+                    hintSpan.textContent = ' ?';
+                    hintSpan.title = param.hint;
+                    hintSpan.style.cssText = 'cursor:help; font-weight:700; opacity:0.5;';
+
+                    labelLeft.appendChild(valueStrong);
+                    labelLeft.appendChild(hintSpan);
+                    labelRow.appendChild(labelLeft);
+                    wrapper.appendChild(labelRow);
+
+                    const slider = document.createElement('input');
+                    slider.type      = 'range';
+                    slider.id        = 'hp_' + param.name;
+                    slider.name      = 'hp_' + param.name;
+                    slider.className = 'slider';
+                    slider.min       = param.min;
+                    slider.max       = param.max;
+                    slider.step      = param.step;
+                    slider.value     = param.default;
+                    slider.oninput   = function() {
+                        document.getElementById('hp_label_' + param.name).textContent = this.value;
+                    };
+                    slider.style.marginBottom = '8px';
+                    wrapper.appendChild(slider);
+
+                } else {
+                    const labelRow = document.createElement('div');
+                    labelRow.className = 'split-labels-row';
+                    labelRow.style.marginTop = '10px'; 
+
+                    const lbl = document.createElement('span');
+                    lbl.className = 'label-text';
+                    lbl.textContent = param.label;
+
+                    const hintSpan = document.createElement('span');
+                    hintSpan.textContent = '?';
+                    hintSpan.title = param.hint;
+                    hintSpan.style.cssText = 'cursor:help; font-weight:700; opacity:0.5;';
+
+                    labelRow.appendChild(lbl);
+                    labelRow.appendChild(hintSpan);
+                    wrapper.appendChild(labelRow);
+
+                    const sw = document.createElement('div');
+                    sw.className = 'select-wrapper';
+
+                    const select = document.createElement('select');
+                    select.id        = 'hp_' + param.name;
+                    select.name      = 'hp_' + param.name;
+                    select.className = 'dropdown';
+
+                    param.options.forEach(function(opt) {
+                        const o = document.createElement('option');
+                        o.value = opt.value;
+                        o.textContent = opt.text;
+                        if (opt.value === String(param.default)) o.selected = true;
+                        select.appendChild(o);
+                    });
+
+                    const arrow = document.createElement('span');
+                    arrow.className = 'custom-arrow';
+                    arrow.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+                    sw.appendChild(select);
+                    sw.appendChild(arrow);
+                    wrapper.appendChild(sw);
+                }
+
+                container.appendChild(wrapper);
+            });
+        }
+
         function updateSplitUI(val) {
             const trainPercent = parseInt(val);
             const testPercent = 100 - trainPercent;
@@ -175,6 +458,12 @@
                 feedback.className = "feedback-box success";
             }
         }
+
+        // Init on page load
+        (function() {
+            const sel = document.getElementById('model-select');
+            updateHyperparams(sel.value);
+        })();
     </script>
 </body>
 </html>
