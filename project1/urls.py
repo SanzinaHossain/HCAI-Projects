@@ -12,5 +12,6 @@ urlpatterns = [
     #urls_for_modeltraining
     path('mtrain/', views.train_page, name='mtrain'),
     path('train-model-form/', views.train_model_form_view, name='train_model_form'),
+    path("train/", views.train, name="train"),
 ]
 

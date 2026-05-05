@@ -23,89 +23,69 @@ from .ml_models import ModelTrainer
 logger = logging.getLogger(__name__)
 
 def index(request):
-    return HttpResponse("Welcome to Project 1!")
-
-
-def upload_csv(request):
-    result = None
+    form = CSVUploadForm()
+    data_preview = None
+    rows = None
+    columns = None
     error = None
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = CSVUploadForm(request.POST, request.FILES)
+
         if form.is_valid():
-            file = request.FILES['file']
-            decoded_file = file.read().decode('utf-8')
-            io_string = io.StringIO(decoded_file)
+            csv_file = request.FILES["file"]
 
             try:
-                reader = csv.reader(io_string)
-                numbers = []
+                df = pd.read_csv(csv_file)
 
-                for row in reader:
-                    for item in row:
-                        try:
-                            numbers.append(float(item.strip()))
-                        except ValueError:
-                            pass  # Skip non-numeric values
+                rows = df.shape[0]
+                columns = list(df.columns)
 
-                if numbers:
-                    result = sum(numbers) / len(numbers)
-                else:
-                    error = "No numeric values found in the CSV."
+                # save uploaded dataset
+                upload_dir = os.path.join(settings.MEDIA_ROOT, "datasets")
+                os.makedirs(upload_dir, exist_ok=True)
+
+                file_path = os.path.join(upload_dir, csv_file.name)
+                df.to_csv(file_path, index=False)
+
+                # store path in session
+                request.session["dataset_path"] = file_path
+
+                data_preview = df.head(5).to_html(
+                      classes="dataset-table",
+                      index=False
+                )
+
             except Exception as e:
-                error = f"Error processing file: {str(e)}"
-    else:
-        form = CSVUploadForm()
+                error = f"Error reading CSV file: {e}"
 
-    return render(request, 'project1/upload.html', {
-        'form': form,
-        'result': result,
-        'error': error
+    return render(request, "project1/index.html", {
+        "form": form,
+        "data_preview": data_preview,
+        "rows": rows,
+        "columns": columns,
+        "error": error,
     })
 
 
-def save_plot(filename):
-    image_path = os.path.join(settings.MEDIA_ROOT, filename)
-    
-    x = np.random.rand(10)
-    y = np.random.rand(10)
-    plt.figure()
-    plt.scatter(x, y)
-    plt.savefig(image_path)
-    
-    image_url = settings.MEDIA_URL + filename
-    return image_url
+def train(request):
+    dataset_path = request.session.get("dataset_path")
 
+    if not dataset_path:
+        return redirect("project1:index")
 
+    df = pd.read_csv(dataset_path)
 
-def generate_plot(request):
-    filename = 'myplot.png'
-    image_url = save_plot(filename)
-    return render(request, 'project1/show_plot.html', {'image_url': image_url})
+    columns = list(df.columns)
+    rows = df.shape[0]
 
+    data_preview = df.head(5).to_html(
+        classes="dataset-table",
+        index=False
+    )
 
-def generate_plot_ajax(request):
-    if request.method == "POST":
-        filename = 'myplot.png'
-        image_url = save_plot(filename)
-        return JsonResponse({'image_url': image_url})
-
-
-
-# Model training views
-
-def train_page(request):
-    return render(request, "project1/mtrain.html")
-
-def train_model_form_view(request):
-    """Handle traditional form submission"""
-    if request.method == 'POST':
-        model_name = request.POST.get('model')
-        split_percentage = int(request.POST.get('split_percentage', 80))
-        
-        trainer = ModelTrainer()
-        results = trainer.train_model(model_name, split_percentage)
-        
-        return render(request, 'project1/mtrain.html', {'results': results})
-    
-    return render(request, 'project1/mtrain.html')
+    return render(request, "project1/train.html", {
+        "columns": columns,
+        "rows": rows,
+        "data_preview": data_preview,
+    })
