@@ -68,66 +68,53 @@ def index(request):
 
 def train(request):
     dataset_path = request.session.get("dataset_path")
-
     if not dataset_path:
         return redirect("project1:index")
 
-    # Initialize trainer
     trainer = ModelTrainer()
-    
-    # Load the dataset from file path
     trainer.load_data(dataset_path)
-    
-    # If POST request (training form submitted)
+
     if request.method == "POST":
         try:
-            # Get form parameters
-            target_column = request.POST.get('target_column')
-            model_name = request.POST.get('model_name')
+            target_column    = request.POST.get('target_column')
+            model_name       = request.POST.get('model_name')
             split_percentage = int(request.POST.get('split_percentage', 80))
+
+            # ── Collect all hp_ fields from the form ──────────────────────
+            hyperparams = {
+                key[3:]: value          # strip the "hp_" prefix
+                for key, value in request.POST.items()
+                if key.startswith('hp_')
+            }
             
-            # Prepare data with target column
+
             trainer.prepare_data(target_column)
-            
-            # Train the model
-            result = trainer.train_model(model_name, split_percentage)
-            
-            # Store results in session
+            result = trainer.train_model(model_name, split_percentage, hyperparams)
             request.session['training_result'] = result
-            
-            # Pass results to template
+
+            df = pd.read_csv(dataset_path)
             return render(request, "project1/mtrain.html", {
                 'training_result': result,
-                'columns': list(pd.read_csv(dataset_path).columns),
-                'rows': pd.read_csv(dataset_path).shape[0],
-                'data_preview': pd.read_csv(dataset_path).head(5).to_html(classes="dataset-table", index=False),
+                'columns':      list(df.columns),
+                'rows':         df.shape[0],
+                'data_preview': df.head(5).to_html(classes="dataset-table", index=False),
             })
-            
+
         except Exception as e:
             logger.error(f"Training error: {str(e)}")
+            df = pd.read_csv(dataset_path)
             return render(request, "project1/mtrain.html", {
-                'error': str(e),
-                'columns': list(pd.read_csv(dataset_path).columns),
-                'rows': pd.read_csv(dataset_path).shape[0],
-                'data_preview': pd.read_csv(dataset_path).head(5).to_html(classes="dataset-table", index=False),
+                'error':        str(e),
+                'columns':      list(df.columns),
+                'rows':         df.shape[0],
+                'data_preview': df.head(5).to_html(classes="dataset-table", index=False),
             })
-    
-    # For GET request - show training form
-    df = pd.read_csv(dataset_path)
-    columns = list(df.columns)
-    rows = df.shape[0]
-    
-    data_preview = df.head(5).to_html(
-        classes="dataset-table",
-        index=False
-    )
-    
-    # Get previous training result if exists
-    training_result = request.session.get('training_result', None)
 
+    # GET request
+    df = pd.read_csv(dataset_path)
     return render(request, "project1/mtrain.html", {
-        "columns": columns,
-        "rows": rows,
-        "data_preview": data_preview,
-        'training_result': training_result,
+        "columns":         list(df.columns),
+        "rows":            df.shape[0],
+        "data_preview":    df.head(5).to_html(classes="dataset-table", index=False),
+        "training_result": request.session.get('training_result'),
     })
