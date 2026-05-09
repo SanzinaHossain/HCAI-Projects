@@ -45,14 +45,14 @@ class ModelTrainer:
         X = self._encode_categorical_features(X)
         
         # Handle categorical target
-        if y.dtype == 'object':
+        if y.dtype == 'object' or pd.api.types.is_string_dtype(y):
             le = LabelEncoder()
             y = le.fit_transform(y)
             print(f"Target classes: {dict(zip(le.classes_, range(len(le.classes_))))}")
         
         # Convert to numpy arrays
         self.X_full = X.values.astype(np.float32)
-        self.y_full = y.values.astype(np.int32)
+        self.y_full = np.array(y).astype(np.int32)
         
         print(f"Prepared data: {self.X_full.shape[0]} samples, {self.X_full.shape[1]} features")
         return self.X_full, self.y_full
@@ -75,87 +75,123 @@ class ModelTrainer:
         
         return X
     
-    def train_model(self, model_name, split_percentage):
-        """Train the selected model with given split percentage"""
-        
+    def train_model(self, model_name, split_percentage, hyperparams=None):
+        """Train the selected model with given split percentage and hyperparams"""
+    
         if self.X_full is None or self.y_full is None:
-            raise ValueError("No data prepared. Call prepare_data() first with target column name.")
-        
-        # Split data based on user's preference
+            raise ValueError("No data prepared. Call prepare_data() first.")
+    
+        if hyperparams is None:
+            hyperparams = {}
+
         test_size = 1 - (split_percentage / 100)
         X_train, X_test, y_train, y_test = train_test_split(
             self.X_full, self.y_full,
             test_size=test_size,
             random_state=42,
-            stratify=self.y_full  # Better for imbalanced datasets
+            stratify=self.y_full
         )
-        
-        # Standardize features
+    
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
         X_test_scaled = scaler.transform(X_test)
         
-        # Select and train model
-        model = self._get_model(model_name)
+        # Pass hyperparams to model
+        model = self._get_model(model_name, hyperparams)
         model.fit(X_train_scaled, y_train)
         
-        # Make predictions
         y_pred = model.predict(X_test_scaled)
         
-        # Calculate classification metrics
-        accuracy = accuracy_score(y_test, y_pred)
-        
-        # Handle binary vs multi-class metrics
+        accuracy  = accuracy_score(y_test, y_pred)
         unique_classes = np.unique(self.y_full)
-        if len(unique_classes) == 2:
-            # Binary classification
-            precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
-            recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
-            f1 = f1_score(y_test, y_pred, average='binary', zero_division=0)
-        else:
-            # Multi-class classification
-            precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-            recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-            f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-        
-        # Calculate confusion matrix
-        cm = confusion_matrix(y_test, y_pred)
-        
+        avg = 'binary' if len(unique_classes) == 2 else 'weighted'
+        precision = precision_score(y_test, y_pred, average=avg, zero_division=0)
+        recall    = recall_score(y_test, y_pred, average=avg, zero_division=0)
+        f1        = f1_score(y_test, y_pred, average=avg, zero_division=0)
+
         metrics = {
-            'Accuracy': round(accuracy, 4),
+            'Accuracy':  round(accuracy,  4),
             'Precision': round(precision, 4),
-            'Recall': round(recall, 4),
-            'F1-Score': round(f1, 4),
+            'Recall':    round(recall,    4),
+            'F1-Score':  round(f1,        4),
         }
-        
-        # Model display names
+
         model_display_names = {
             'linear_regression': 'Logistic Regression',
-            'decision_tree': 'Decision Tree Classifier',
-            'knn': 'K-Nearest Neighbors',
-            'svm': 'Support Vector Machine',
-            'random_forest': 'Random Forest Classifier'
+            'decision_tree':     'Decision Tree Classifier',
+            'knn':               'K-Nearest Neighbors',
+            'svm':               'Support Vector Machine',
+            'random_forest':     'Random Forest Classifier',
         }
-        
-        # Return results
+
         return {
-            'model_name': model_display_names.get(model_name, model_name),
-            'train_split': split_percentage,
-            'test_split': 100 - split_percentage,
-            'metrics': metrics,
-            'num_samples': self.X_full.shape[0],
+            'model_name':   model_display_names.get(model_name, model_name),
+            'train_split':  split_percentage,
+            'test_split':   100 - split_percentage,
+            'metrics':      metrics,
+            'num_samples':  self.X_full.shape[0],
             'num_features': self.X_full.shape[1],
-            'num_classes': len(unique_classes)
+            'num_classes':  len(unique_classes),
         }
-    
-    def _get_model(self, model_name):
-        """Return the appropriate classification model based on name"""
-        models = {
-            'linear_regression': LogisticRegression(random_state=42, max_iter=1000),
-            'decision_tree': DecisionTreeClassifier(max_depth=5, random_state=42),
-            'knn': KNeighborsClassifier(n_neighbors=5),
-            'svm': SVC(kernel='rbf', C=1.0, random_state=42),
-            'random_forest': RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
-        }
-        
-        return models[model_name]
+
+
+    def _get_model(self, model_name, hyperparams):
+        """Build model using user-supplied hyperparams with safe fallback defaults."""
+
+        def get(key, default, cast=None):
+            val = hyperparams.get(key, default)
+            if cast:
+                try:
+                    return cast(val)
+                except (ValueError, TypeError):
+                    return default
+            return val
+
+        if model_name == 'linear_regression':
+            return LogisticRegression(
+                fit_intercept = get('fit_intercept', 'true') == 'true',
+                random_state  = 42,
+                max_iter      = 1000,
+            )
+
+        elif model_name == 'decision_tree':
+            return DecisionTreeClassifier(
+                max_depth         = get('max_depth',         5,     int),
+                min_samples_split = get('min_samples_split', 2,     int),
+                min_samples_leaf  = get('min_samples_leaf',  1,     int),
+                criterion         = get('criterion',         'gini'),
+                random_state      = 42,
+            )
+
+        elif model_name == 'knn':
+            return KNeighborsClassifier(
+                n_neighbors = get('n_neighbors', 5,           int),
+                weights     = get('weights',     'uniform'),
+                metric      = get('metric',      'euclidean'),
+                algorithm   = get('algorithm',   'auto'),
+            )
+
+        elif model_name == 'svm':
+            return SVC(
+                C            = get('C',      1,     int),
+                kernel       = get('kernel', 'rbf'),
+                gamma        = get('gamma',  'scale'),
+                degree       = get('degree', 3,     int),
+                random_state = 42,
+            )
+
+        elif model_name == 'random_forest':
+            max_features_val = get('max_features', 'sqrt')
+            if max_features_val == 'none':
+                max_features_val = None
+
+            return RandomForestClassifier(
+                n_estimators      = get('n_estimators',      100, int),
+                max_depth         = get('max_depth',         10,  int),
+                min_samples_split = get('min_samples_split', 2,   int),
+                max_features      = max_features_val,
+                bootstrap         = get('bootstrap', 'true') == 'true',
+                random_state      = 42,
+            )
+
+        raise ValueError(f"Unknown model: {model_name}")
