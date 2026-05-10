@@ -3,6 +3,7 @@ import io
 import os
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
 
 from django.conf import settings
@@ -27,6 +28,8 @@ def index(request):
     columns = None
     error = None
 
+    heatmap_url = None
+
     if request.method == "POST":
         form = CSVUploadForm(request.POST, request.FILES)
 
@@ -39,20 +42,58 @@ def index(request):
                 rows = df.shape[0]
                 columns = list(df.columns)
 
-                # save uploaded dataset
                 upload_dir = os.path.join(settings.MEDIA_ROOT, "datasets")
                 os.makedirs(upload_dir, exist_ok=True)
 
                 file_path = os.path.join(upload_dir, csv_file.name)
                 df.to_csv(file_path, index=False)
 
-                # store path in session
                 request.session["dataset_path"] = file_path
 
-                data_preview = df.head(5).to_html(
-                      classes="dataset-table",
-                      index=False
+                # random 5 rows preview
+                data_preview = df.sample(min(5, len(df))).to_html(
+                    classes="dataset-table",
+                    index=False
                 )
+
+                # ---------------------------------
+                # Correlation Heatmap
+                # ---------------------------------
+                numeric_df = df.select_dtypes(include=np.number)
+
+                if len(numeric_df.columns) > 1:
+
+                    plot_dir = os.path.join(settings.MEDIA_ROOT, "plots")
+                    os.makedirs(plot_dir, exist_ok=True)
+
+                    heatmap_filename = "correlation_heatmap.png"
+                    heatmap_path = os.path.join(
+                        plot_dir,
+                        heatmap_filename
+                    )
+
+                    plt.figure(figsize=(10, 3))
+
+                    correlation_matrix = numeric_df.corr()
+
+                    sns.heatmap(
+                        correlation_matrix,
+                        annot=True,
+                        cmap="coolwarm",
+                        fmt=".2f"
+                    )
+
+                    plt.title("Feature Correlation Heatmap")
+                    plt.tight_layout()
+
+                    plt.savefig(heatmap_path)
+                    plt.close()
+
+                    heatmap_url = (
+                        settings.MEDIA_URL +
+                        "plots/" +
+                        heatmap_filename
+                    )
 
             except Exception as e:
                 error = f"Error reading CSV file: {e}"
@@ -63,8 +104,8 @@ def index(request):
         "rows": rows,
         "columns": columns,
         "error": error,
+        "heatmap_url": heatmap_url,
     })
-
 
 def train(request):
     dataset_path = request.session.get("dataset_path")

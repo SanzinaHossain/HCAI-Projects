@@ -1,13 +1,49 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="box">
-  <div class="main-text">
-    <p class="centered-text">
-      Upload your dataset, visualize it, and train machine learning models.
+{% extends 'base.html' %} {% load static %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'project1/style.css' %}" />
+{% endblock %} {% block content %}
+<div class="dashboard">
+  <div class="hero-card">
+    <h1>Automated Machine Learning</h1>
+    <p>
+      Upload your CSV dataset, preview the data, visualize patterns, and train a
+      model.
     </p>
 
-    {% include 'project1/upload.html' %}
+    <form method="post" enctype="multipart/form-data" class="upload-form">
+      {% csrf_token %} {{ form.as_p }}
+      <button type="submit">Upload Dataset</button>
+    </form>
+
+    {% if error %}
+    <p class="error-message">{{ error }}</p>
+    {% endif %}
   </div>
+
+  {% if data_preview %}
+
+  <div class="content-card">
+    <h2>Data Table</h2>
+    <div class="table-wrapper">{{ data_preview|safe }}</div>
+  </div>
+
+  {% if plot_url %} {% endif %} {% if heatmap_url %}
+  <div class="content-card">
+    <h2>Correlation Heatmap</h2>
+
+    <p class="small-text">
+      This heatmap shows relationships between numeric features.
+    </p>
+
+    <img src="{{ heatmap_url }}" alt="Correlation Heatmap" class="plot-image" />
+  </div>
+  {% endif %}
+
+  <div class="action-card">
+    <form method="post" action="{% url 'project1:mtrain' %}">
+      {% csrf_token %}
+      <button type="submit" class="train-btn">Train Model</button>
+    </form>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
