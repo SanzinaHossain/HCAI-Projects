@@ -38,16 +38,17 @@
                         </div>
                         <small>Choose the column you want to predict</small>
                     </div>
-                    
+
+                    <!-- Model Selection - MOVED HERE (right after target column) -->
                     <div class="form-group">
                         <label for="model-select">Select Model</label>
                         <div class="select-wrapper">
                             <select id="model-select" name="model_name" class="dropdown" onchange="updateHyperparams(this.value)">
                                 <option value="linear_regression">Logistic Regression</option>
                                 <option value="decision_tree">Decision Tree</option>
-                                <option value="knn">K-Nearest Neighbors (KNN)</option>
+                                <!-- <option value="knn">K-Nearest Neighbors (KNN)</option> -->
                                 <option value="svm">Support Vector Machine (SVM)</option>
-                                <option value="random_forest">Random Forest</option>
+                                <!-- <option value="random_forest">Random Forest</option> -->
                             </select>
                             <span class="custom-arrow">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -55,12 +56,7 @@
                         </div>
                     </div>
 
-                    <!-- Dynamic Hyperparameters Section -->
-                    <div id="hyperparams-section" class="form-group">
-                        <label>Hyperparameters</label>
-                        <div id="hyperparams-container"></div>
-                    </div>
-
+                    <!-- Train/Test Split Section - MOVED HERE (after model selection) -->
                     <div class="form-group split-section">
                         <div class="split-labels-row">
                             <span class="label-text">Train: <strong id="trainLabel">80%</strong></span>
@@ -73,6 +69,12 @@
                         <div id="feedback-note" class="feedback-box success">
                             ✅ Good choice. Healthy balance for training and validation.
                         </div>
+                    </div>
+
+                    <!-- Dynamic Hyperparameters Section -->
+                    <div id="hyperparams-section" class="form-group">
+                        <label>Hyperparameters</label>
+                        <div id="hyperparams-container"></div>
                     </div>
 
                     <button type="submit" class="train-btn">
@@ -234,6 +236,7 @@
                     hint: "Function to measure the quality of a split."
                 }
             ],
+            /* KNN - HIDDEN (commented out)
             knn: [
                 {
                     name: "n_neighbors",
@@ -279,6 +282,7 @@
                     hint: "Algorithm used to compute nearest neighbors."
                 }
             ],
+            */
             svm: [
                 {
                     name: "C",
@@ -319,6 +323,7 @@
                     hint: "Degree of the polynomial kernel function."
                 }
             ],
+            /* Random Forest - HIDDEN (commented out)
             random_forest: [
                 {
                     name: "n_estimators",
@@ -365,6 +370,7 @@
                     hint: "Whether to use bootstrap samples when building trees."
                 }
             ]
+            */
         };
 
         function updateHyperparams(modelKey) {
