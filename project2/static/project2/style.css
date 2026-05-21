@@ -107,3 +107,20 @@ img {
   width: 100%;
   border-radius: 12px;
 }
+button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+input[type="range"] {
+  width: 350px;
+}
