@@ -34,6 +34,13 @@
       >
         Logistic Regression
       </a>
+
+      <a
+        href="{% url 'project2:counterfactual' %}"
+        class="{% if 'counterfactual' in request.path %}active{% endif %}"
+      >
+        Counterfactual
+      </a>
     </div>
 
     <div class="container">{% block content %} {% endblock %}</div>

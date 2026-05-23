@@ -1,9 +1,10 @@
 from django.shortcuts import render
 from django.conf import settings
-
 from palmerpenguins import load_penguins
 
 import os
+import numpy as np
+import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -21,6 +22,9 @@ from sklearn.metrics import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
+
+
+
 
 
 def prepare_data():
@@ -160,6 +164,8 @@ def tree_view(request):
     }
     return render(request, "project2/tree.html", context)
 
+#.................................................Task 2 - Regularization..................................
+
 def regularization_view(request):
     os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
 
@@ -237,6 +243,7 @@ def regularization_view(request):
 
     return render(request, "project2/regularization.html", context)
 
+#.................................................Task 3 - Logistic Regression..................................
 
 def logistic_view(request):
     lambda_value = float(request.GET.get("lambda", 0.0))
@@ -300,3 +307,280 @@ def logistic_view(request):
     }
 
     return render(request, "project2/logistic.html", context)
+
+# .................................................Task 4 - Counterfactual..................................
+
+def get_best_tree_model(X_train, X_test, y_train, y_test, lambda_value):
+    max_leaf_options = [2, 3, 4, 5, 6, 8, 10, 15, 20]
+
+    best_score = -999
+    best_model = None
+
+    for max_leaf in max_leaf_options:
+        model = DecisionTreeClassifier(
+            max_leaf_nodes=max_leaf,
+            random_state=42
+        )
+
+        model.fit(X_train, y_train)
+
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        leaves = model.get_n_leaves()
+
+        score = accuracy - lambda_value * leaves
+
+        if score > best_score:
+            best_score = score
+            best_model = model
+
+    return best_model
+
+
+def get_best_logistic_model(X_train, X_test, y_train, y_test, lambda_value):
+    c_values = [0.001, 0.01, 0.1, 1, 10, 100]
+
+    best_score = -999
+    best_model = None
+
+    for c in c_values:
+        model = make_pipeline(
+            StandardScaler(),
+            LogisticRegression(
+                C=c,
+                max_iter=1000
+            )
+        )
+
+        model.fit(X_train, y_train)
+
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+
+        logistic_model = model.named_steps["logisticregression"]
+        complexity = np.abs(logistic_model.coef_).sum()
+
+        score = accuracy - lambda_value * complexity
+
+        if score > best_score:
+            best_score = score
+            best_model = model
+
+    return best_model
+
+
+def generate_counterfactuals(
+    model,
+    original_x,
+    target_label,
+    X,
+    le_species,
+    n_samples=300,
+    k=5
+):
+    numeric_features = [
+        "bill_length_mm",
+        "bill_depth_mm",
+        "flipper_length_mm",
+        "body_mass_g",
+        "year"
+    ]
+
+    categorical_features = [
+        "island",
+        "sex"
+    ]
+
+    mad = (
+        X[numeric_features] - X[numeric_features].mean()
+    ).abs().mean()
+
+    mad = mad.replace(0, 1)
+
+    candidates = []
+
+    for _ in range(n_samples):
+        new_x = original_x.copy()
+
+        for feature in numeric_features:
+            std = X[feature].std()
+            noise = np.random.normal(0, 0.15 * std)
+
+            new_x[feature] = new_x[feature] + noise
+            new_x[feature] = np.clip(
+                new_x[feature],
+                X[feature].min(),
+                X[feature].max()
+            )
+
+        for feature in categorical_features:
+            if np.random.rand() < 0.3:
+                possible_values = X[feature].unique()
+                new_x[feature] = np.random.choice(possible_values)
+
+        new_df = pd.DataFrame([new_x], columns=X.columns)
+
+        prediction = model.predict(new_df)[0]
+
+        if prediction == target_label:
+            distance = 0
+
+            for feature in numeric_features:
+                distance += abs(
+                    new_x[feature] - original_x[feature]
+                ) / mad[feature]
+
+            for feature in categorical_features:
+                if new_x[feature] != original_x[feature]:
+                    distance += 1
+
+            candidates.append((distance, new_x.copy()))
+
+    candidates = sorted(candidates, key=lambda x: x[0])
+    best_candidates = candidates[:k]
+
+    rows = []
+
+    for distance, candidate in best_candidates:
+        row = candidate.to_dict()
+
+        row["distance"] = round(distance, 4)
+        row["predicted_species"] = le_species.inverse_transform(
+            [target_label]
+        )[0]
+
+        rows.append(row)
+
+    return rows
+
+
+def counterfactual_view(request):
+    lambda_value = float(request.GET.get("lambda", 0.0))
+    model_type = request.GET.get("model_type", "tree")
+    example_id = int(request.GET.get("example_id", 0))
+    target_species_name = request.GET.get("target_species", "Gentoo")
+
+    X, y, le_species = prepare_data()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
+
+    if model_type == "tree":
+        model = get_best_tree_model(
+            X_train,
+            X_test,
+            y_train,
+            y_test,
+            lambda_value
+        )
+    else:
+        model = get_best_logistic_model(
+            X_train,
+            X_test,
+            y_train,
+            y_test,
+            lambda_value
+        )
+
+    original_x = X.iloc[example_id]
+
+    original_prediction = model.predict(
+        pd.DataFrame([original_x], columns=X.columns)
+    )[0]
+
+    target_label = le_species.transform([target_species_name])[0]
+
+    counterfactuals = []
+
+    if request.GET.get("generate") == "1":
+        np.random.seed(42)
+
+        counterfactuals = generate_counterfactuals(
+            model=model,
+            original_x=original_x,
+            target_label=target_label,
+            X=X,
+            le_species=le_species,
+            n_samples=300,
+            k=5
+        )
+
+    original_row = original_x.to_dict()
+    original_row["model_prediction"] = le_species.inverse_transform(
+        [original_prediction]
+    )[0]
+
+    original_table = pd.DataFrame([original_row]).to_html(
+        classes="data-table",
+        index=False
+    )
+
+    counterfactual_table = pd.DataFrame(counterfactuals)
+
+    if not counterfactual_table.empty:
+        table_html = counterfactual_table.to_html(
+            classes="data-table",
+            index=False
+        )
+    else:
+        table_html = None
+
+    example_options = []
+
+    for i in range(len(X)):
+        row = X.iloc[i]
+        real_species = le_species.inverse_transform([y.iloc[i]])[0]
+
+        label = (
+            f"{real_species} | "
+            f"Bill: {row['bill_length_mm']} mm | "
+            f"Flipper: {row['flipper_length_mm']} mm | "
+            f"Mass: {row['body_mass_g']} g"
+        )
+
+        example_options.append({
+            "id": i,
+            "label": label,
+            "selected": i == example_id
+        })
+
+    species_options = []
+
+    for species in le_species.classes_:
+        species_options.append({
+            "name": species,
+            "selected": species == target_species_name
+        })
+
+    model_options = [
+        {
+            "value": "tree",
+            "label": "Decision Tree",
+            "selected": model_type == "tree"
+        },
+        {
+            "value": "logistic",
+            "label": "Logistic Regression",
+            "selected": model_type == "logistic"
+        }
+    ]
+
+    context = {
+        "lambda_value": lambda_value,
+        "model_options": model_options,
+        "species_options": species_options,
+        "example_options": example_options,
+        "original_table": original_table,
+        "counterfactual_table": table_html,
+    }
+
+    return render(
+        request,
+        "project2/counterfactual.html",
+        context
+    )
