@@ -18,6 +18,9 @@ from sklearn.metrics import (
     roc_curve,
     auc,
 )
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 
 
 def prepare_data():
@@ -233,3 +236,67 @@ def regularization_view(request):
     }
 
     return render(request, "project2/regularization.html", context)
+
+
+def logistic_view(request):
+    lambda_value = float(request.GET.get("lambda", 0.0))
+
+    X, y, le_species = prepare_data()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
+
+    c_values = [0.001, 0.01, 0.1, 1, 10, 100]
+
+    results = []
+    best_score = -999
+    best_model = None
+
+    for c in c_values:
+        model = make_pipeline(
+            StandardScaler(),
+            LogisticRegression(
+                C=c,
+                max_iter=1000,
+            )
+        )
+
+        model.fit(X_train, y_train)
+
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+
+        logistic_model = model.named_steps["logisticregression"]
+        complexity = abs(logistic_model.coef_).sum()
+
+        score = accuracy - lambda_value * complexity
+
+        results.append({
+            "c": c,
+            "accuracy": round(accuracy * 100, 2),
+            "complexity": round(complexity, 4),
+            "score": round(score, 4),
+        })
+
+        if score > best_score:
+            best_score = score
+            best_model = model
+            best_accuracy = accuracy
+            best_complexity = complexity
+            best_c = c
+
+    context = {
+        "lambda_value": lambda_value,
+        "accuracy": round(best_accuracy * 100, 2),
+        "complexity": round(best_complexity, 4),
+        "best_c": best_c,
+        "best_score": round(best_score, 4),
+        "results": results,
+    }
+
+    return render(request, "project2/logistic.html", context)
