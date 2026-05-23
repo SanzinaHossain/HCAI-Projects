@@ -74,7 +74,7 @@ Explore interpretable and human-centered machine learning methods. :contentRefer
 Clone repository:
 
 ```bash
-git clone <repository-link>
+git clone <https://github.com/SanzinaHossain/HCAI-Projects.git>
 ```
 
 Create virtual environment:
