@@ -32,7 +32,7 @@ Implemented functionalities:
 
 Main objective:
 
-Develop a user-friendly interface for supervised machine learning workflows. :contentReference[oaicite:0]{index=0}
+Develop a user-friendly interface for supervised machine learning workflows.
 
 ---
 
@@ -53,7 +53,7 @@ Dataset used:
 
 Main objective:
 
-Explore interpretable and human-centered machine learning methods. :contentReference[oaicite:1]{index=1}
+Explore interpretable and human-centered machine learning methods. 
 
 ---
 
