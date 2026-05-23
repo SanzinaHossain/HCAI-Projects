@@ -1,0 +1,52 @@
+{% extends "project2/base.html" %} {% block content %}
+
+<div class="card">
+  <h1>Feature Effect Plots</h1>
+</div>
+
+<div class="card">
+  <form method="get" class="counterfactual-form">
+    <div class="form-row">
+      <label>Model Type</label>
+      <select name="model_type">
+        {{ model_options_html|safe }}
+      </select>
+    </div>
+    <br></br>
+    <div class="form-row">
+      <label>Numerical Feature</label>
+      <select name="feature">
+        {{ feature_options_html|safe }}
+      </select>
+    </div>
+    <br></br>
+    <div class="form-row">
+      <label>λ Regularization: {{ lambda_value }}</label>
+      <input
+        type="range"
+        name="lambda"
+        min="0"
+        max="0.1"
+        step="0.005"
+        value="{{ lambda_value }}"
+      />
+    </div>
+    <br></br>
+    <button type="submit">Generate Plots</button>
+  </form>
+</div>
+
+<div class="horizontal-layout">
+  <div class="half-card">
+    <h2>PDP Plot</h2>
+    <img src="{{ pdp_plot }}" alt="PDP Plot" />
+  </div>
+
+  <div class="half-card">
+    <h2>ALE Plot</h2>
+    <img src="{{ ale_plot }}" alt="ALE Plot" />
+  </div>
+</div>
+
+
+{% endblock %}

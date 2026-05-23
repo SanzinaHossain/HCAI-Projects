@@ -584,3 +584,183 @@ def counterfactual_view(request):
         "project2/counterfactual.html",
         context
     )
+
+
+def compute_pdp(model, X, feature, grid_values):
+    pdp_values = []
+
+    for value in grid_values:
+        X_temp = X.copy()
+        X_temp[feature] = value
+        probs = model.predict_proba(X_temp)
+        pdp_values.append(probs.mean(axis=0))
+
+    return np.array(pdp_values)
+
+
+def compute_ale(model, X, feature, bins=10):
+    values = X[feature].values
+    quantiles = np.quantile(values, np.linspace(0, 1, bins + 1))
+    quantiles = np.unique(quantiles)
+
+    ale_effects = []
+    grid_centers = []
+
+    for i in range(len(quantiles) - 1):
+        lower = quantiles[i]
+        upper = quantiles[i + 1]
+
+        mask = (X[feature] >= lower) & (X[feature] <= upper)
+        X_bin = X[mask]
+
+        if len(X_bin) == 0:
+            continue
+
+        X_low = X_bin.copy()
+        X_high = X_bin.copy()
+
+        X_low[feature] = lower
+        X_high[feature] = upper
+
+        probs_low = model.predict_proba(X_low)
+        probs_high = model.predict_proba(X_high)
+
+        diff = probs_high - probs_low
+        ale_effects.append(diff.mean(axis=0))
+        grid_centers.append((lower + upper) / 2)
+
+    ale_effects = np.array(ale_effects)
+    accumulated = np.cumsum(ale_effects, axis=0)
+
+    accumulated = accumulated - accumulated.mean(axis=0)
+
+    return np.array(grid_centers), accumulated
+
+
+def feature_effects_view(request):
+    os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+
+    lambda_value = float(request.GET.get("lambda", 0.0))
+    model_type = request.GET.get("model_type", "tree")
+    selected_feature = request.GET.get("feature", "bill_length_mm")
+
+    numerical_features = [
+        "bill_length_mm",
+        "bill_depth_mm",
+        "flipper_length_mm",
+        "body_mass_g"
+    ]
+
+    X, y, le_species = prepare_data()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
+
+    if model_type == "tree":
+        model = get_best_tree_model(
+            X_train,
+            X_test,
+            y_train,
+            y_test,
+            lambda_value
+        )
+    else:
+        model = get_best_logistic_model(
+            X_train,
+            X_test,
+            y_train,
+            y_test,
+            lambda_value
+        )
+
+    grid_values = np.linspace(
+        X[selected_feature].min(),
+        X[selected_feature].max(),
+        30
+    )
+
+    pdp_values = compute_pdp(
+        model,
+        X,
+        selected_feature,
+        grid_values
+    )
+
+    ale_x, ale_values = compute_ale(
+        model,
+        X,
+        selected_feature,
+        bins=10
+    )
+
+    pdp_path = os.path.join(settings.MEDIA_ROOT, "pdp_plot.png")
+    ale_path = os.path.join(settings.MEDIA_ROOT, "ale_plot.png")
+
+    plt.figure(figsize=(8, 5))
+
+    for i, species in enumerate(le_species.classes_):
+        plt.plot(
+            grid_values,
+            pdp_values[:, i],
+            label=species
+        )
+
+    plt.xlabel(selected_feature)
+    plt.ylabel("Average predicted probability")
+    plt.title("Partial Dependence Plot")
+    plt.legend()
+    plt.savefig(pdp_path, bbox_inches="tight", dpi=100)
+    plt.close()
+
+    plt.figure(figsize=(8, 5))
+
+    for i, species in enumerate(le_species.classes_):
+        plt.plot(
+            ale_x,
+            ale_values[:, i],
+            label=species
+        )
+
+    plt.xlabel(selected_feature)
+    plt.ylabel("Centered accumulated effect")
+    plt.title("Accumulated Local Effects Plot")
+    plt.legend()
+    plt.savefig(ale_path, bbox_inches="tight", dpi=100)
+    plt.close()
+
+    model_options_html = ""
+    for value, label in [
+        ("tree", "Decision Tree"),
+        ("logistic", "Logistic Regression")
+    ]:
+        selected = "selected" if value == model_type else ""
+        model_options_html += (
+            f'<option value="{value}" {selected}>{label}</option>'
+        )
+
+    feature_options_html = ""
+    for feature in numerical_features:
+        selected = "selected" if feature == selected_feature else ""
+        feature_options_html += (
+            f'<option value="{feature}" {selected}>{feature}</option>'
+        )
+
+    context = {
+        "lambda_value": lambda_value,
+        "model_options_html": model_options_html,
+        "feature_options_html": feature_options_html,
+        "selected_feature": selected_feature,
+        "pdp_plot": settings.MEDIA_URL + "pdp_plot.png?v=" + str(lambda_value) + selected_feature + model_type,
+        "ale_plot": settings.MEDIA_URL + "ale_plot.png?v=" + str(lambda_value) + selected_feature + model_type,
+    }
+
+    return render(
+        request,
+        "project2/feature_effects.html",
+        context
+    )
