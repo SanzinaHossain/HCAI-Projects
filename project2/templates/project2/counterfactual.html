@@ -11,53 +11,32 @@
     <!-- MODEL TYPE -->
     <div class="form-row">
       <label>Model Type</label>
-
       <select name="model_type">
         {% for model in model_options %}
-
-        <option
-          value="{{ model.value }}"
-          {%
-          if
-          model.selected
-          %}selected{%
-          endif
-          %}
-        >
+        <option value="{{ model.value }}" {% if model.selected %}selected{% endif %}>
           {{ model.label }}
         </option>
-
         {% endfor %}
       </select>
     </div>
     <br /><br />
+
     <!-- TARGET SPECIES -->
     <div class="form-row">
       <label>Target Species</label>
-
       <select name="target_species">
         {% for species in species_options %}
-
-        <option
-          value="{{ species.name }}"
-          {%
-          if
-          species.selected
-          %}selected{%
-          endif
-          %}
-        >
+        <option value="{{ species.name }}" {% if species.selected %}selected{% endif %}>
           {{ species.name }}
         </option>
-
         {% endfor %}
       </select>
     </div>
     <br /><br />
+
     <!-- LAMBDA -->
     <div class="form-row">
       <label> λ Regularization: {{ lambda_value }} </label>
-
       <input
         type="range"
         name="lambda"
@@ -68,21 +47,20 @@
       />
     </div>
     <br /><br />
+
     <!-- EXAMPLE -->
     <div class="form-row">
       <label>Select Penguin Example</label>
-
       <select name="example_id">
         {% for item in example_options %}
-
         <option value="{{ item.id }}" {% if item.selected %}selected{% endif %}>
           {{ item.label }}
         </option>
-
         {% endfor %}
       </select>
     </div>
     <br /><br />
+
     <!-- BUTTON -->
     <button type="submit" name="generate" value="1">
       Generate Counterfactuals
@@ -92,18 +70,38 @@
 
 <div class="card">
   <h2>Original Selected Penguin</h2>
-
   {{ original_table|safe }}
 </div>
 
 <div class="card">
   <h2>Best Counterfactual Examples</h2>
 
-  {% if counterfactual_table %} {{ counterfactual_table|safe }} {% else %}
+  {% if generated %}
+    {% if already_target %}
+      <p class="info-message">
+        ℹ️ The model already predicts <strong>{{ target_species }}</strong> for
+        this example — no counterfactuals are needed.
+      </p>
 
-  <p>No counterfactuals were found. Try another target species or model.</p>
+    {% elif counterfactual_table %}
+      <p class="info-message">
+        ✅ Found <strong>{{ total_found }}</strong> counterfactual candidate(s).
+        Showing the closest {{ total_found }} below.
+      </p>
+      {{ counterfactual_table|safe }}
 
+    {% else %}
+      <p class="warning-message">
+        ⚠️ No counterfactuals found for target <strong>{{ target_species }}</strong>
+        even after expanding the search (up to 5 attempts with increasing noise and
+        sample size). Try a different example, target species, or model.
+      </p>
+    {% endif %}
+
+  {% else %}
+    <p>Select your settings above and click <strong>Generate Counterfactuals</strong> to begin.</p>
   {% endif %}
+
 </div>
 
 {% endblock %}

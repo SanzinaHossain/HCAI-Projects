@@ -444,7 +444,8 @@ def generate_counterfactuals(
     X,
     le_species,
     n_samples=300,
-    k=5
+    k=5,
+    max_attempts=5,
 ):
     numeric_features = [
         "bill_length_mm",
@@ -462,64 +463,64 @@ def generate_counterfactuals(
     mad = (
         X[numeric_features] - X[numeric_features].mean()
     ).abs().mean()
-
     mad = mad.replace(0, 1)
 
     candidates = []
+    noise_scale = 0.15  # starts at 15% of std, doubles each failed attempt
 
-    for _ in range(n_samples):
-        new_x = original_x.copy()
+    for attempt in range(max_attempts):
+        attempt_candidates = []
 
-        for feature in numeric_features:
-            std = X[feature].std()
-            noise = np.random.normal(0, 0.15 * std)
-
-            new_x[feature] = new_x[feature] + noise
-            new_x[feature] = np.clip(
-                new_x[feature],
-                X[feature].min(),
-                X[feature].max()
-            )
-
-        for feature in categorical_features:
-            if np.random.rand() < 0.3:
-                possible_values = X[feature].unique()
-                new_x[feature] = np.random.choice(possible_values)
-
-        new_df = pd.DataFrame([new_x], columns=X.columns)
-
-        prediction = model.predict(new_df)[0]
-
-        if prediction == target_label:
-            distance = 0
+        for _ in range(n_samples):
+            new_x = original_x.copy()
 
             for feature in numeric_features:
-                distance += abs(
-                    new_x[feature] - original_x[feature]
-                ) / mad[feature]
+                std = X[feature].std()
+                noise = np.random.normal(0, noise_scale * std)
+                new_x[feature] = np.clip(
+                    new_x[feature] + noise,
+                    X[feature].min(),
+                    X[feature].max()
+                )
 
             for feature in categorical_features:
-                if new_x[feature] != original_x[feature]:
-                    distance += 1
+                if np.random.rand() < 0.3:
+                    possible_values = X[feature].unique()
+                    new_x[feature] = np.random.choice(possible_values)
 
-            candidates.append((distance, new_x.copy()))
+            new_df = pd.DataFrame([new_x], columns=X.columns)
+            prediction = model.predict(new_df)[0]
+
+            if prediction == target_label:
+                distance = sum(
+                    abs(new_x[f] - original_x[f]) / mad[f]
+                    for f in numeric_features
+                ) + sum(
+                    1 for f in categorical_features
+                    if new_x[f] != original_x[f]
+                )
+                attempt_candidates.append((distance, new_x.copy()))
+
+        candidates.extend(attempt_candidates)
+
+        if len(candidates) >= k:
+            break  # found enough — stop early
+
+        # not enough found: double both sample count and noise for next attempt
+        n_samples *= 2
+        noise_scale *= 2
 
     candidates = sorted(candidates, key=lambda x: x[0])
     best_candidates = candidates[:k]
 
     rows = []
-
     for distance, candidate in best_candidates:
         row = candidate.to_dict()
-
         row["distance"] = round(distance, 4)
-        row["predicted_species"] = le_species.inverse_transform(
-            [target_label]
-        )[0]
-
+        row["predicted_species"] = le_species.inverse_transform([target_label])[0]
         rows.append(row)
 
-    return rows
+    return rows, len(candidates)
 
 
 def counterfactual_view(request):
@@ -531,29 +532,13 @@ def counterfactual_view(request):
     X, y, le_species = prepare_data()
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
 
     if model_type == "tree":
-        model = get_best_tree_model(
-            X_train,
-            X_test,
-            y_train,
-            y_test,
-            lambda_value
-        )
+        model = get_best_tree_model(X_train, X_test, y_train, y_test, lambda_value)
     else:
-        model = get_best_logistic_model(
-            X_train,
-            X_test,
-            y_train,
-            y_test,
-            lambda_value
-        )
+        model = get_best_logistic_model(X_train, X_test, y_train, y_test, lambda_value)
 
     original_x = X.iloc[example_id]
 
@@ -564,78 +549,61 @@ def counterfactual_view(request):
     target_label = le_species.transform([target_species_name])[0]
 
     counterfactuals = []
+    total_found = 0
+    already_target = original_prediction == target_label
 
     if request.GET.get("generate") == "1":
         np.random.seed(42)
 
-        counterfactuals = generate_counterfactuals(
-            model=model,
-            original_x=original_x,
-            target_label=target_label,
-            X=X,
-            le_species=le_species,
-            n_samples=300,
-            k=5
-        )
+        if already_target:
+            # No point generating — model already predicts the target
+            counterfactuals = []
+        else:
+            counterfactuals, total_found = generate_counterfactuals(
+                model=model,
+                original_x=original_x,
+                target_label=target_label,
+                X=X,
+                le_species=le_species,
+                n_samples=300,
+                k=5,
+                max_attempts=5,
+            )
 
     original_row = original_x.to_dict()
-    original_row["model_prediction"] = le_species.inverse_transform(
-        [original_prediction]
-    )[0]
+    original_row["model_prediction"] = le_species.inverse_transform([original_prediction])[0]
 
     original_table = pd.DataFrame([original_row]).to_html(
-        classes="data-table",
-        index=False
+        classes="data-table", index=False
     )
 
     counterfactual_table = pd.DataFrame(counterfactuals)
-
-    if not counterfactual_table.empty:
-        table_html = counterfactual_table.to_html(
-            classes="data-table",
-            index=False
-        )
-    else:
-        table_html = None
+    table_html = (
+        counterfactual_table.to_html(classes="data-table", index=False)
+        if not counterfactual_table.empty
+        else None
+    )
 
     example_options = []
-
     for i in range(len(X)):
         row = X.iloc[i]
         real_species = le_species.inverse_transform([y.iloc[i]])[0]
-
         label = (
             f"{real_species} | "
             f"Bill: {row['bill_length_mm']} mm | "
             f"Flipper: {row['flipper_length_mm']} mm | "
             f"Mass: {row['body_mass_g']} g"
         )
+        example_options.append({"id": i, "label": label, "selected": i == example_id})
 
-        example_options.append({
-            "id": i,
-            "label": label,
-            "selected": i == example_id
-        })
-
-    species_options = []
-
-    for species in le_species.classes_:
-        species_options.append({
-            "name": species,
-            "selected": species == target_species_name
-        })
+    species_options = [
+        {"name": s, "selected": s == target_species_name}
+        for s in le_species.classes_
+    ]
 
     model_options = [
-        {
-            "value": "tree",
-            "label": "Decision Tree",
-            "selected": model_type == "tree"
-        },
-        {
-            "value": "logistic",
-            "label": "Logistic Regression",
-            "selected": model_type == "logistic"
-        }
+        {"value": "tree",     "label": "Decision Tree",        "selected": model_type == "tree"},
+        {"value": "logistic", "label": "Logistic Regression",  "selected": model_type == "logistic"},
     ]
 
     context = {
@@ -645,13 +613,15 @@ def counterfactual_view(request):
         "example_options": example_options,
         "original_table": original_table,
         "counterfactual_table": table_html,
+        # feedback flags for the template
+        "generated": request.GET.get("generate") == "1",
+        "total_found": total_found,
+        "already_target": already_target,
+        "current_prediction": le_species.inverse_transform([original_prediction])[0],
+        "target_species": target_species_name,
     }
 
-    return render(
-        request,
-        "project2/counterfactual.html",
-        context
-    )
+    return render(request, "project2/counterfactual.html", context)
 
 
 def compute_pdp(model, X, feature, grid_values):
