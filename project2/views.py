@@ -246,6 +246,8 @@ def regularization_view(request):
 #.................................................Task 3 - Logistic Regression..................................
 
 def logistic_view(request):
+    os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+
     lambda_value = float(request.GET.get("lambda", 0.0))
 
     X, y, le_species = prepare_data()
@@ -297,6 +299,68 @@ def logistic_view(request):
             best_complexity = complexity
             best_c = c
 
+    # --- Generate plots for the best model ---
+    coef_path = os.path.join(settings.MEDIA_ROOT, "logistic_coef.png")
+    cm_path   = os.path.join(settings.MEDIA_ROOT, "logistic_cm.png")
+    roc_path  = os.path.join(settings.MEDIA_ROOT, "logistic_roc.png")
+
+    cache_key = str(lambda_value)  # bust cache when lambda changes
+
+    y_pred_best  = best_model.predict(X_test)
+    y_score_best = best_model.predict_proba(X_test)
+
+    # 1. Coefficient weights bar chart
+    logistic_model = best_model.named_steps["logisticregression"]
+    coef = logistic_model.coef_          # shape: (n_classes, n_features)
+    feature_names = X.columns.tolist()
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    x = np.arange(len(feature_names))
+    width = 0.25
+
+    for i, species in enumerate(le_species.classes_):
+        ax.bar(x + i * width, coef[i], width, label=species)
+
+    ax.set_xticks(x + width)
+    ax.set_xticklabels(feature_names, rotation=30, ha="right")
+    ax.set_xlabel("Feature")
+    ax.set_ylabel("Coefficient value")
+    ax.set_title("Logistic Regression Coefficients (best C={})".format(best_c))
+    ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(coef_path, bbox_inches="tight", dpi=100)
+    plt.close()
+
+    # 2. Confusion matrix
+    cm = confusion_matrix(y_test, y_pred_best)
+    fig, ax = plt.subplots(figsize=(6, 5))
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=le_species.classes_
+    )
+    disp.plot(ax=ax, cmap="Blues", values_format="d")
+    plt.title("Confusion Matrix – Logistic Regression")
+    plt.savefig(cm_path, bbox_inches="tight", dpi=100)
+    plt.close()
+
+    # 3. ROC curve (one-vs-rest)
+    y_test_bin = label_binarize(y_test, classes=[0, 1, 2])
+    plt.figure(figsize=(7, 5))
+
+    for i, class_name in enumerate(le_species.classes_):
+        fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_score_best[:, i])
+        roc_auc = auc(fpr, tpr)
+        plt.plot(fpr, tpr, label=f"{class_name} AUC = {roc_auc:.2f}")
+
+    plt.plot([0, 1], [0, 1], linestyle="--", color="grey")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve – Logistic Regression")
+    plt.legend()
+    plt.savefig(roc_path, bbox_inches="tight", dpi=100)
+    plt.close()
+
     context = {
         "lambda_value": lambda_value,
         "accuracy": round(best_accuracy * 100, 2),
@@ -304,6 +368,10 @@ def logistic_view(request):
         "best_c": best_c,
         "best_score": round(best_score, 4),
         "results": results,
+        # images
+        "coef_image":       settings.MEDIA_URL + "logistic_coef.png?v=" + cache_key,
+        "confusion_matrix": settings.MEDIA_URL + "logistic_cm.png?v="   + cache_key,
+        "roc_curve":        settings.MEDIA_URL + "logistic_roc.png?v="  + cache_key,
     }
 
     return render(request, "project2/logistic.html", context)
