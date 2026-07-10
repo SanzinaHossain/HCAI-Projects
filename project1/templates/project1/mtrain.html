@@ -1,0 +1,497 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Training Dashboard</title>
+    <link rel="stylesheet" href="{% static 'mtrain.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="ml-training-page">
+        <header class="main-page-header">
+            <h1>Machine Learning Model Training</h1>
+        </header>
+
+        <div class="dashboard-grid">
+            
+            <div class="train-container">
+                <div class="box-header">
+                    <h2>Model Setup</h2>
+                </div>
+
+                <!-- Traditional form submission -->
+                <form class="train-form" method="POST" action="{% url 'project1:mtrain' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="target_column">Select Target Column (What to predict)</label>
+                        <div class="select-wrapper">
+                            <select id="target_column" name="target_column" class="dropdown" required>
+                                <option value="">-- Select target column --</option>
+                                {% for column in columns %}
+                                    <option value="{{ column }}">{{ column }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <small>Choose the column you want to predict</small>
+                    </div>
+
+                    <!-- Model Selection - MOVED HERE (right after target column) -->
+                    <div class="form-group">
+                        <label for="model-select">Select Model</label>
+                        <div class="select-wrapper">
+                            <select id="model-select" name="model_name" class="dropdown" onchange="updateHyperparams(this.value)">
+                                <option value="linear_regression">Logistic Regression</option>
+                                <option value="decision_tree">Decision Tree</option>
+                                <!-- <option value="knn">K-Nearest Neighbors (KNN)</option> -->
+                                <option value="svm">Support Vector Machine (SVM)</option>
+                                <!-- <option value="random_forest">Random Forest</option> -->
+                            </select>
+                            <span class="custom-arrow">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Train/Test Split Section - MOVED HERE (after model selection) -->
+                    <div class="form-group split-section">
+                        <div class="split-labels-row">
+                            <span class="label-text">Train: <strong id="trainLabel">80%</strong></span>
+                            <span class="label-text">Test: <strong id="testLabel">20%</strong></span>
+                        </div>
+                        
+                        <input type="range" id="split-slider" name="split_percentage" min="10" max="95" value="80" class="slider"
+                               oninput="updateSplitUI(this.value)">
+                        
+                        <div id="feedback-note" class="feedback-box success">
+                            ✅ Good choice. Healthy balance for training and validation.
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Hyperparameters Section -->
+                    <div id="hyperparams-section" class="form-group">
+                        <label>Hyperparameters</label>
+                        <div id="hyperparams-container"></div>
+                    </div>
+
+                    <button type="submit" class="train-btn">
+                        Train Model
+                    </button>
+                </form>
+            </div>
+
+            <div class="train-container">
+                <div class="box-header">
+                    <h2>Training Results</h2>
+                </div>
+                <div class="results-content">
+                    {% if training_result %}
+                        <div class="results-split">
+                            
+                            <div class="results-left">
+                                <div class="info-card">
+                                    <div class="card-icon">🤖</div>
+                                    <h3 class="card-title">Model Details</h3>
+                                    <div class="info-item">
+                                        <span class="info-label">Model Name</span>
+                                        <span class="info-value">{{ training_result.model_name }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Train Split</span>
+                                        <span class="info-value">{{ training_result.train_split }}%</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Test Split</span>
+                                        <span class="info-value">{{ training_result.test_split }}%</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Samples</span>
+                                        <span class="info-value">{{ training_result.num_samples }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Features</span>
+                                        <span class="info-value">{{ training_result.num_features }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="results-right">
+                                <div class="performance-card">
+                                    <div class="card-icon">📊</div>
+                                    <h3 class="card-title">Model Performance</h3>
+                                    <div class="metrics-grid">
+                                        {% for key, value in training_result.metrics.items %}
+                                            <div class="metric-card">
+                                                <span class="metric-name">{{ key }}:</span>
+                                                <span class="metric-value">{{ value }}</span>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <div class="evaluation-card">
+                                    <h4>🎯 Performance Evaluation</h4>
+                                    {% for key, value in training_result.metrics.items %}
+                                        {% if key == "F1-Score" %}
+                                            {% if value >= 0.95 %}
+                                                <p class="evaluation-outstanding">🏆 OUTSTANDING MODEL — Exceptional performance for production</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: This model is production-ready! 🚀</p>
+                                            {% elif value >= 0.90 %}
+                                                <p class="evaluation-excellent">⭐ EXCELLENT MODEL — Highly reliable</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: This model is production-ready! 🚀</p>
+                                            {% elif value >= 0.80 %}
+                                                <p class="evaluation-verygood">✅ VERY GOOD MODEL — Strong performance</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Good model, but consider testing on more data.</p>
+                                            {% elif value >= 0.70 %}
+                                                <p class="evaluation-good">📈 GOOD MODEL — Acceptable for most tasks</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Good model, but consider testing on more data.</p>
+                                            {% elif value >= 0.60 %}
+                                                <p class="evaluation-warning">⚠️ NEEDS IMPROVEMENT — Consider feature engineering</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Try Random Forest or tune hyperparameters for better results.</p>
+                                            {% else %}
+                                                <p class="evaluation-poor">❌ POOR MODEL — Try different model or more data</p>
+                                                <p class="evaluation-recommendation">💡 Recommendation: Try Random Forest or tune hyperparameters for better results.</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                        </div>
+                    {% elif error %}
+                        <div class="error-box">
+                            <h3>❌ Error</h3>
+                            <p>{{ error }}</p>
+                        </div>
+                    {% else %}
+                        <div class="placeholder-icon">📊</div>
+                        <p>Select a target column, model, and click "Train Model" to see results.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const HYPERPARAMS = {
+            linear_regression: [
+                {
+                    name: "fit_intercept",
+                    label: "Fit Intercept",
+                    type: "select",
+                    options: [
+                        { value: "true",  text: "True"  },
+                        { value: "false", text: "False" }
+                    ],
+                    default: "true",
+                    hint: "Whether to calculate the intercept for this model."
+                },
+                {
+                    name: "normalize",
+                    label: "Normalize",
+                    type: "select",
+                    options: [
+                        { value: "false", text: "False" },
+                        { value: "true",  text: "True"  }
+                    ],
+                    default: "false",
+                    hint: "Normalize regressors before fitting."
+                }
+            ],
+            decision_tree: [
+                {
+                    name: "max_depth",
+                    label: "Max Depth",
+                    type: "slider",
+                    min: 1, max: 50, step: 1, default: 5,
+                    hint: "Maximum depth of the tree. Higher values risk overfitting."
+                },
+                {
+                    name: "min_samples_split",
+                    label: "Min Samples Split",
+                    type: "slider",
+                    min: 2, max: 20, step: 1, default: 2,
+                    hint: "Minimum samples required to split an internal node."
+                },
+                {
+                    name: "min_samples_leaf",
+                    label: "Min Samples Leaf",
+                    type: "slider",
+                    min: 1, max: 20, step: 1, default: 1,
+                    hint: "Minimum samples required to be at a leaf node."
+                },
+                {
+                    name: "criterion",
+                    label: "Criterion",
+                    type: "select",
+                    options: [
+                        { value: "gini",    text: "Gini"    },
+                        { value: "entropy", text: "Entropy" }
+                    ],
+                    default: "gini",
+                    hint: "Function to measure the quality of a split."
+                }
+            ],
+            /* KNN - HIDDEN (commented out)
+            knn: [
+                {
+                    name: "n_neighbors",
+                    label: "N Neighbors (K)",
+                    type: "slider",
+                    min: 1, max: 50, step: 1, default: 5,
+                    hint: "Number of neighbors to use. Lower K = more complex boundary."
+                },
+                {
+                    name: "weights",
+                    label: "Weights",
+                    type: "select",
+                    options: [
+                        { value: "uniform",  text: "Uniform"  },
+                        { value: "distance", text: "Distance" }
+                    ],
+                    default: "uniform",
+                    hint: "Weight function used in prediction."
+                },
+                {
+                    name: "metric",
+                    label: "Distance Metric",
+                    type: "select",
+                    options: [
+                        { value: "euclidean", text: "Euclidean" },
+                        { value: "manhattan", text: "Manhattan" },
+                        { value: "minkowski", text: "Minkowski" }
+                    ],
+                    default: "euclidean",
+                    hint: "Distance metric for the tree."
+                },
+                {
+                    name: "algorithm",
+                    label: "Algorithm",
+                    type: "select",
+                    options: [
+                        { value: "auto",      text: "Auto"      },
+                        { value: "ball_tree", text: "Ball Tree" },
+                        { value: "kd_tree",   text: "KD Tree"   },
+                        { value: "brute",     text: "Brute"     }
+                    ],
+                    default: "auto",
+                    hint: "Algorithm used to compute nearest neighbors."
+                }
+            ],
+            */
+            svm: [
+                {
+                    name: "C",
+                    label: "Regularization (C)",
+                    type: "slider",
+                    min: 1, max: 100, step: 1, default: 1,
+                    hint: "Regularization parameter. Smaller C = wider margin, more misclassification."
+                },
+                {
+                    name: "kernel",
+                    label: "Kernel",
+                    type: "select",
+                    options: [
+                        { value: "rbf",     text: "RBF (Gaussian)" },
+                        { value: "linear",  text: "Linear"         },
+                        { value: "poly",    text: "Polynomial"     },
+                        { value: "sigmoid", text: "Sigmoid"        }
+                    ],
+                    default: "rbf",
+                    hint: "Kernel type used in the algorithm."
+                },
+                {
+                    name: "gamma",
+                    label: "Gamma",
+                    type: "select",
+                    options: [
+                        { value: "scale", text: "Scale" },
+                        { value: "auto",  text: "Auto"  }
+                    ],
+                    default: "scale",
+                    hint: "Kernel coefficient for 'rbf', 'poly', and 'sigmoid'."
+                },
+                {
+                    name: "degree",
+                    label: "Degree (Poly only)",
+                    type: "slider",
+                    min: 2, max: 10, step: 1, default: 3,
+                    hint: "Degree of the polynomial kernel function."
+                }
+            ],
+            /* Random Forest - HIDDEN (commented out)
+            random_forest: [
+                {
+                    name: "n_estimators",
+                    label: "N Estimators",
+                    type: "slider",
+                    min: 10, max: 500, step: 10, default: 100,
+                    hint: "Number of trees in the forest. More trees = better but slower."
+                },
+                {
+                    name: "max_depth",
+                    label: "Max Depth",
+                    type: "slider",
+                    min: 1, max: 50, step: 1, default: 10,
+                    hint: "Maximum depth of each tree."
+                },
+                {
+                    name: "min_samples_split",
+                    label: "Min Samples Split",
+                    type: "slider",
+                    min: 2, max: 20, step: 1, default: 2,
+                    hint: "Minimum samples required to split an internal node."
+                },
+                {
+                    name: "max_features",
+                    label: "Max Features",
+                    type: "select",
+                    options: [
+                        { value: "sqrt", text: "sqrt" },
+                        { value: "log2", text: "log2" },
+                        { value: "none", text: "None (all)" }
+                    ],
+                    default: "sqrt",
+                    hint: "Number of features to consider at each split."
+                },
+                {
+                    name: "bootstrap",
+                    label: "Bootstrap",
+                    type: "select",
+                    options: [
+                        { value: "true",  text: "True"  },
+                        { value: "false", text: "False" }
+                    ],
+                    default: "true",
+                    hint: "Whether to use bootstrap samples when building trees."
+                }
+            ]
+            */
+        };
+
+        function updateHyperparams(modelKey) {
+            const container = document.getElementById('hyperparams-container');
+            container.innerHTML = '';
+
+            const params = HYPERPARAMS[modelKey] || [];
+
+            params.forEach(function(param) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-group split-section';
+
+                if (param.type === 'slider') {
+                    const labelRow = document.createElement('div');
+                    labelRow.className = 'split-labels-row';
+
+                    const labelLeft = document.createElement('span');
+                    labelLeft.className = 'label-text';
+                    labelLeft.textContent = param.label + ': ';
+
+                    const valueStrong = document.createElement('strong');
+                    valueStrong.id = 'hp_label_' + param.name;
+                    valueStrong.textContent = param.default;
+
+                    const hintSpan = document.createElement('span');
+                    hintSpan.textContent = ' ?';
+                    hintSpan.title = param.hint;
+                    hintSpan.style.cssText = 'cursor:help; font-weight:700; opacity:0.5;';
+
+                    labelLeft.appendChild(valueStrong);
+                    labelLeft.appendChild(hintSpan);
+                    labelRow.appendChild(labelLeft);
+                    wrapper.appendChild(labelRow);
+
+                    const slider = document.createElement('input');
+                    slider.type      = 'range';
+                    slider.id        = 'hp_' + param.name;
+                    slider.name      = 'hp_' + param.name;
+                    slider.className = 'slider';
+                    slider.min       = param.min;
+                    slider.max       = param.max;
+                    slider.step      = param.step;
+                    slider.value     = param.default;
+                    slider.oninput   = function() {
+                        document.getElementById('hp_label_' + param.name).textContent = this.value;
+                    };
+                    slider.style.marginBottom = '8px';
+                    wrapper.appendChild(slider);
+
+                } else {
+                    const labelRow = document.createElement('div');
+                    labelRow.className = 'split-labels-row';
+                    labelRow.style.marginTop = '10px'; 
+
+                    const lbl = document.createElement('span');
+                    lbl.className = 'label-text';
+                    lbl.textContent = param.label;
+
+                    const hintSpan = document.createElement('span');
+                    hintSpan.textContent = '?';
+                    hintSpan.title = param.hint;
+                    hintSpan.style.cssText = 'cursor:help; font-weight:700; opacity:0.5;';
+
+                    labelRow.appendChild(lbl);
+                    labelRow.appendChild(hintSpan);
+                    wrapper.appendChild(labelRow);
+
+                    const sw = document.createElement('div');
+                    sw.className = 'select-wrapper';
+
+                    const select = document.createElement('select');
+                    select.id        = 'hp_' + param.name;
+                    select.name      = 'hp_' + param.name;
+                    select.className = 'dropdown';
+
+                    param.options.forEach(function(opt) {
+                        const o = document.createElement('option');
+                        o.value = opt.value;
+                        o.textContent = opt.text;
+                        if (opt.value === String(param.default)) o.selected = true;
+                        select.appendChild(o);
+                    });
+
+                    const arrow = document.createElement('span');
+                    arrow.className = 'custom-arrow';
+                    arrow.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+                    sw.appendChild(select);
+                    sw.appendChild(arrow);
+                    wrapper.appendChild(sw);
+                }
+
+                container.appendChild(wrapper);
+            });
+        }
+
+        function updateSplitUI(val) {
+            const trainPercent = parseInt(val);
+            const testPercent = 100 - trainPercent;
+            const feedback = document.getElementById('feedback-note');
+            
+            document.getElementById('trainLabel').innerText = trainPercent + '%';
+            document.getElementById('testLabel').innerText = testPercent + '%';
+
+            if (trainPercent > 90) {
+                feedback.innerText = "⚠️ Caution: Risk of Overfitting. The model may memorize noise rather than learn patterns.";
+                feedback.className = "feedback-box error";
+            } else if (trainPercent < 60) {
+                feedback.innerText = "⚠️ Caution: Risk of Underfitting. Not enough data provided for effective learning.";
+                feedback.className = "feedback-box error";
+            } else {
+                feedback.innerText = "✅ Good choice. Healthy balance for training and validation.";
+                feedback.className = "feedback-box success";
+            }
+        }
+
+        // Init on page load
+        (function() {
+            const sel = document.getElementById('model-select');
+            updateHyperparams(sel.value);
+        })();
+    </script>
+</body>
+</html>

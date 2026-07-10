@@ -1,0 +1,78 @@
+{% extends "project2/base.html" %} {% block content %}
+
+<div class="card">
+  <h1>Logistic Regression Regularization</h1>
+</div>
+
+<div class="card">
+  <h2>Regularization Slider</h2>
+
+  <form method="get">
+    <label> λ value: <strong>{{ lambda_value }}</strong> </label>
+
+    <br /><br />
+
+    <input
+      type="range"
+      name="lambda"
+      min="0"
+      max="0.1"
+      step="0.005"
+      value="{{ lambda_value }}"
+      oninput="this.nextElementSibling.value = this.value"
+    />
+
+    <output>{{ lambda_value }}</output>
+
+    <br /><br />
+
+    <button type="submit">Apply</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Selected Best Model</h2>
+  <p><strong>Test Accuracy:</strong> {{ accuracy }}%</p>
+  <p><strong>Best C Value:</strong> {{ best_c }}</p>
+  <p><strong>Coefficient Complexity Ω:</strong> {{ complexity }}</p>
+  <p><strong>Optimization Score:</strong> {{ best_score }}</p>
+</div>
+
+<div class="card">
+  <h2>Comparison of Logistic Regression Models</h2>
+
+  <table class="data-table">
+    <tr>
+      <th>C Value</th>
+      <th>Accuracy (%)</th>
+      <th>Complexity Ω</th>
+      <th>Score</th>
+    </tr>
+
+    {% for row in results %}
+    <tr>
+      <td>{{ row.c }}</td>
+      <td>{{ row.accuracy }}</td>
+      <td>{{ row.complexity }}</td>
+      <td>{{ row.score }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>Coefficient Weights</h2>
+  <img src="{{ coef_image }}" alt="Logistic Regression Coefficients" style="max-width: 100%;" />
+</div>
+
+<div class="card">
+  <h2>Confusion Matrix</h2>
+  <img src="{{ confusion_matrix }}" alt="Confusion Matrix" style="max-width: 100%;" />
+</div>
+
+<div class="card">
+  <h2>ROC Curve</h2>
+  <img src="{{ roc_curve }}" alt="ROC Curve" style="max-width: 100%;" />
+</div>
+
+{% endblock %}
