@@ -1160,3 +1160,276 @@ tbody tr:hover {
     gap: 3px;
   }
 }
+
+/* =========================================================
+   Full-screen model training popup
+   ========================================================= */
+
+.training-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease;
+}
+
+.training-loader.is-visible {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.training-loader-card {
+  width: min(470px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+
+  padding: 36px 30px;
+
+  text-align: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+
+  background: #ffffff;
+
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+
+  animation: loader-card-enter 240ms ease;
+}
+
+.training-spinner {
+  width: 74px;
+  height: 74px;
+
+  margin: 0 auto 22px;
+
+  border: 8px solid #e8eaff;
+  border-top-color: #5b67f1;
+  border-right-color: #7c83f7;
+  border-radius: 50%;
+
+  animation: training-spin 0.85s linear infinite;
+}
+
+.training-loader-card h2 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+
+.training-loader-card > p {
+  min-height: 24px;
+
+  margin: 10px 0 18px;
+
+  color: #667085;
+
+  font-size: 0.92rem;
+}
+
+.training-progress-bar {
+  width: 100%;
+  height: 8px;
+
+  margin-bottom: 24px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: #e8eaff;
+}
+
+.training-progress-value {
+  width: 42%;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(90deg, #5b67f1, #8790ff);
+
+  animation: training-progress 1.5s ease-in-out infinite;
+}
+
+.training-loader-steps {
+  display: grid;
+  gap: 10px;
+
+  margin-bottom: 20px;
+
+  text-align: left;
+}
+
+.loader-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 14px;
+
+  border: 1px solid #e8ebf2;
+  border-radius: 12px;
+
+  background: #f8f9fd;
+}
+
+.loader-step-icon {
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+  background: #5b67f1;
+
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  animation: loader-step-pulse 1.5s ease-in-out infinite;
+}
+
+.loader-step:nth-child(2) .loader-step-icon {
+  animation-delay: 0.25s;
+}
+
+.loader-step:nth-child(3) .loader-step-icon {
+  animation-delay: 0.5s;
+}
+
+.loader-step > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.loader-step strong {
+  color: #344054;
+  font-size: 0.86rem;
+}
+
+.loader-step small {
+  margin-top: 2px;
+
+  color: #7b8495;
+
+  font-size: 0.74rem;
+}
+
+.loader-footer {
+  display: block;
+
+  color: #98a2b3;
+
+  font-size: 0.76rem;
+}
+
+body.training-in-progress {
+  overflow: hidden;
+}
+
+body.training-in-progress .app-shell {
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes training-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes training-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  50% {
+    transform: translateX(110%);
+  }
+
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+@keyframes loader-step-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.88);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes loader-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .training-loader {
+    padding: 14px;
+  }
+
+  .training-loader-card {
+    padding: 28px 20px;
+    border-radius: 18px;
+  }
+
+  .training-spinner {
+    width: 62px;
+    height: 62px;
+    border-width: 7px;
+  }
+
+  .loader-step {
+    padding: 10px 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .training-spinner,
+  .training-progress-value,
+  .loader-step-icon,
+  .training-loader-card {
+    animation-duration: 2.5s;
+  }
+}

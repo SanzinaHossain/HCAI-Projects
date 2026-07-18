@@ -25,7 +25,7 @@ class DatasetUploadForm(forms.Form):
         dataset = self.cleaned_data["dataset"]
         if not dataset.name.lower().endswith(".csv"):
             raise forms.ValidationError("Please upload a CSV file.")
-        if dataset.size > 10 * 1024 * 1024:
+        if dataset.size > 25 * 1024 * 1024:
             raise forms.ValidationError("The file is too large. Please keep it under 10 MB.")
         return dataset
 
