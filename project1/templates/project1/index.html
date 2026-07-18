@@ -1,49 +1,142 @@
-{% extends 'base.html' %} {% load static %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'project1/style.css' %}" />
-{% endblock %} {% block content %}
-<div class="dashboard">
-  <div class="hero-card">
-    <h1>Automated Machine Learning</h1>
-    <p>
-      Upload your CSV dataset, preview the data, visualize patterns, and train a
-      model.
-    </p>
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automated Machine Learning</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'project1/style.css' %}?v=20260718-10"
+    />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="{% url 'project1:index' %}">
+          <span class="brand-mark">AI</span>
+          <span>
+            <strong>Automated Machine Learning</strong>
+            <small>Human-friendly machine learning</small>
+          </span>
+        </a>
+      </header>
 
-    <form method="post" enctype="multipart/form-data" class="upload-form">
-      {% csrf_token %} {{ form.as_p }}
-      <button type="submit">Upload Dataset</button>
-    </form>
+      <main class="page">
+        {% include "project1/stepper.html" %} {% if messages %}
+        <div class="message-stack">
+          {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
 
-    {% if error %}
-    <p class="error-message">{{ error }}</p>
-    {% endif %}
-  </div>
+        <section class="hero-card">
+          <div class="hero-copy">
+            <span class="eyebrow">Step 1 of 3 · Add your data</span>
+            <h1>Turn a CSV file into an understandable prediction model.</h1>
+            <p>
+              No machine-learning knowledge is required. The application will
+              guide you through reviewing your data, selecting what to predict,
+              and understanding the final result.
+            </p>
 
-  {% if data_preview %}
+            <div class="benefit-grid">
+              <div class="mini-card">
+                <span class="mini-icon">1</span>
+                <div>
+                  <strong>Upload safely</strong>
+                  <small>Your file stays inside this project.</small>
+                </div>
+              </div>
+              <div class="mini-card">
+                <span class="mini-icon">2</span>
+                <div>
+                  <strong>Understand patterns</strong>
+                  <small>See a preview and simple relationship chart.</small>
+                </div>
+              </div>
+              <div class="mini-card">
+                <span class="mini-icon">3</span>
+                <div>
+                  <strong>Train with guidance</strong>
+                  <small>Every setting is explained in plain language.</small>
+                </div>
+              </div>
+            </div>
+          </div>
 
-  <div class="content-card">
-    <h2>Data Table</h2>
-    <div class="table-wrapper">{{ data_preview|safe }}</div>
-  </div>
+          <div class="upload-panel">
+            <div class="panel-heading">
+              <span class="panel-icon">CSV</span>
+              <div>
+                <h2>Upload your dataset</h2>
+                <p>Use a file with column names in the first row.</p>
+              </div>
+            </div>
 
-  {% if plot_url %} {% endif %} {% if heatmap_url %}
-  <div class="content-card">
-    <h2>Correlation Heatmap</h2>
+            <form
+              method="post"
+              enctype="multipart/form-data"
+              class="upload-form"
+            >
+              {% csrf_token %}
+              <label class="drop-zone" for="{{ form.dataset.id_for_label }}">
+                {{ form.dataset }}
+                <span class="drop-zone-icon">↑</span>
+                <strong>Choose a CSV file</strong>
+                <small>Maximum size: 10 MB</small>
+              </label>
 
-    <p class="small-text">
-      This heatmap shows relationships between numeric features.
-    </p>
+              {% if form.dataset.errors %}
+              <div class="field-error">{{ form.dataset.errors|striptags }}</div>
+              {% endif %}
 
-    <img src="{{ heatmap_url }}" alt="Correlation Heatmap" class="plot-image" />
-  </div>
-  {% endif %}
+              <button class="primary-button" type="submit">
+                Continue to data review
+                <span>→</span>
+              </button>
+            </form>
 
-  <div class="action-card">
-    <form method="post" action="{% url 'project1:mtrain' %}">
-      {% csrf_token %}
-      <button type="submit" class="train-btn">Train Model</button>
-    </form>
-  </div>
-  {% endif %}
-</div>
-{% endblock %}
+            <div class="privacy-note">
+              <span>✓</span>
+              <p>
+                Your file is used only for this session and can be cleared at
+                any time.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="help-card">
+          <div>
+            <span class="help-icon">?</span>
+          </div>
+          <div>
+            <h3>What should the CSV look like?</h3>
+            <p>
+              Each row should represent one example. Each column should
+              represent one piece of information. One column will later be
+              selected as the value you want the model to predict.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const input = document.querySelector(".file-input");
+      const dropZone = document.querySelector(".drop-zone");
+
+      if (input && dropZone) {
+        input.addEventListener("change", () => {
+          const fileName = input.files.length
+            ? input.files[0].name
+            : "Choose a CSV file";
+          dropZone.querySelector("strong").textContent = fileName;
+          dropZone.classList.toggle("has-file", input.files.length > 0);
+        });
+      }
+    </script>
+  </body>
+</html>

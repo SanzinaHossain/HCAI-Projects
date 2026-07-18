@@ -1,38 +1,158 @@
-{% extends 'base.html' %} {% load static %} {% block content %}
+{% load static project1_extras %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Review Dataset · AutoML Guide</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'project1/style.css' %}?v=20260718-10"
+    />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="{% url 'project1:index' %}">
+          <span class="brand-mark">AI</span>
+          <span>
+            <strong>Automated Machine Learning</strong>
+            <small>Human-friendly machine learning</small>
+          </span>
+        </a>
+      </header>
 
-<div class="box">
-  <div class="title-container">
-    <div class="title">Display a plot</div>
-  </div>
+      <main class="page">
+        {% include "project1/stepper.html" %} {% if messages %}
+        <div class="message-stack">
+          {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
 
-  <div class="main-text">
-    {% if image_url %}
-    <img src="{{ image_url }}" alt="Generated plot" id="generated-plot" />
-    {% else %}
-    <p>No image to show.</p>
-    {% endif %}
-    <br /><br />
-    <button id="refresh-button">Generate new plot</button>
-  </div>
+        <section class="page-heading">
+          <div>
+            <span class="eyebrow">Step 2 of 3 · Review your data</span>
+            <h1>Everything looks ready to explore.</h1>
+            <p>
+              Review the dataset before training. This helps you confirm that
+              the file contains the information you expected.
+            </p>
+          </div>
+          <div class="file-chip">
+            <span>CSV</span>
+            <div>
+              <strong>{{ dataset_name }}</strong>
+              <small
+                >{{ summary.rows }} rows · {{ summary.columns }} columns</small
+              >
+            </div>
+          </div>
+        </section>
 
-  <script>
-    document
-      .getElementById("refresh-button")
-      .addEventListener("click", function () {
-        fetch("{% url 'demos:generate_plot_ajax' %}", {
-          method: "POST",
-          headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-            Accept: "application/json",
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            const img = document.getElementById("generated-plot");
-            img.src = data.image_url + "?t=" + new Date().getTime(); // bust cache
-          });
-      });
-  </script>
-</div>
+        <section class="stat-grid">
+          <article class="stat-card">
+            <span>Rows</span>
+            <strong>{{ summary.rows }}</strong>
+            <small>Examples available</small>
+          </article>
+          <article class="stat-card">
+            <span>Columns</span>
+            <strong>{{ summary.columns }}</strong>
+            <small>Information fields</small>
+          </article>
+          <article class="stat-card">
+            <span>Numeric</span>
+            <strong>{{ summary.numeric_columns }}</strong>
+            <small>Number-based columns</small>
+          </article>
+          <article class="stat-card">
+            <span>Missing values</span>
+            <strong>{{ summary.missing_values }}</strong>
+            <small
+              >{% if summary.missing_values %}Handled automatically{% else %}No
+              missing data found{% endif %}</small
+            >
+          </article>
+        </section>
 
-{% endblock %} {% block script %} {% endblock script %}
+        <section class="content-card">
+          <div class="section-heading">
+            <div>
+              <span class="section-icon">▦</span>
+              <div>
+                <h2>Data preview</h2>
+                <p>The first few rows are shown below.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  {% for column in columns %}
+                  <th>{{ column }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview %}
+                <tr>
+                  {% for column in columns %}
+                  <td>{{ row|get_item:column }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="content-card">
+          <div class="section-heading">
+            <div>
+              <span class="section-icon">↔</span>
+              <div>
+                <h2>Relationship overview</h2>
+                <p>
+                  Values near +1 move together. Values near −1 move in opposite
+                  directions. Values near 0 have little linear relationship.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {% if heatmap %}
+          <div class="chart-frame">
+            <img src="{{ heatmap }}" alt="Correlation heatmap" />
+          </div>
+          <div class="insight-note">
+            <strong>How to use this:</strong>
+            Strong relationships can help prediction, but a high correlation
+            does not automatically mean that one column causes another.
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <span>i</span>
+            <div>
+              <strong>No heatmap is available</strong>
+              <p>At least two numeric columns are required for this chart.</p>
+            </div>
+          </div>
+          {% endif %}
+        </section>
+
+        <div class="sticky-actions">
+          <a class="secondary-button" href="{% url 'project1:index' %}"
+            >← Back</a
+          >
+          <a class="primary-button" href="{% url 'project1:mtrain' %}">
+            Continue to model setup <span>→</span>
+          </a>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
