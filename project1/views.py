@@ -1,232 +1,3 @@
-# from __future__ import annotations
-
-# import base64
-# import io
-# import os
-# import uuid
-# from pathlib import Path
-
-# import matplotlib
-# matplotlib.use("Agg")
-# import matplotlib.pyplot as plt
-# import pandas as pd
-# import seaborn as sns
-# from django.conf import settings
-# from django.contrib import messages
-# from django.http import Http404
-# from django.shortcuts import redirect, render
-# from django.views.decorators.http import require_http_methods
-
-# from .forms import DatasetUploadForm, TrainingForm
-# from .ml_models import train_model
-
-
-# SESSION_FILE_KEY = "project1_dataset_path"
-# SESSION_NAME_KEY = "project1_dataset_name"
-
-
-# def _get_upload_directory() -> Path:
-#     media_root = Path(getattr(settings, "MEDIA_ROOT", Path(settings.BASE_DIR) / "media"))
-#     upload_dir = media_root / "project1_uploads"
-#     upload_dir.mkdir(parents=True, exist_ok=True)
-#     return upload_dir
-
-
-# def _read_dataframe(request) -> pd.DataFrame:
-#     stored_path = request.session.get(SESSION_FILE_KEY)
-#     if not stored_path:
-#         raise FileNotFoundError("No dataset has been uploaded yet.")
-
-#     path = Path(stored_path)
-#     if not path.exists():
-#         request.session.pop(SESSION_FILE_KEY, None)
-#         request.session.pop(SESSION_NAME_KEY, None)
-#         raise FileNotFoundError("The uploaded dataset is no longer available.")
-
-#     try:
-#         dataframe = pd.read_csv(path)
-#     except UnicodeDecodeError:
-#         dataframe = pd.read_csv(path, encoding="latin-1")
-#     except Exception as exc:
-#         raise ValueError(f"The CSV file could not be read: {exc}") from exc
-
-#     if dataframe.empty:
-#         raise ValueError("The CSV file is empty.")
-#     if dataframe.shape[1] < 2:
-#         raise ValueError("The dataset must contain at least two columns.")
-
-#     dataframe.columns = [str(column).strip() for column in dataframe.columns]
-#     return dataframe
-
-
-# def _figure_to_data_uri(fig) -> str:
-#     buffer = io.BytesIO()
-#     fig.savefig(buffer, format="png", bbox_inches="tight", dpi=140)
-#     plt.close(fig)
-#     buffer.seek(0)
-#     encoded = base64.b64encode(buffer.read()).decode("utf-8")
-#     return f"data:image/png;base64,{encoded}"
-
-
-# def _build_heatmap(dataframe: pd.DataFrame) -> str | None:
-#     numeric = dataframe.select_dtypes(include="number")
-#     if numeric.shape[1] < 2:
-#         return None
-
-#     fig, ax = plt.subplots(figsize=(10, 5.5))
-#     sns.heatmap(
-#         numeric.corr(),
-#         annot=True,
-#         fmt=".2f",
-#         cmap="coolwarm",
-#         center=0,
-#         linewidths=0.5,
-#         ax=ax,
-#     )
-#     ax.set_title("How the numeric columns move together", pad=16)
-#     fig.tight_layout()
-#     return _figure_to_data_uri(fig)
-
-
-# def _dataset_summary(dataframe: pd.DataFrame) -> dict:
-#     numeric_count = len(dataframe.select_dtypes(include="number").columns)
-#     missing = int(dataframe.isna().sum().sum())
-#     return {
-#         "rows": int(dataframe.shape[0]),
-#         "columns": int(dataframe.shape[1]),
-#         "numeric_columns": numeric_count,
-#         "text_columns": int(dataframe.shape[1] - numeric_count),
-#         "missing_values": missing,
-#     }
-
-
-# @require_http_methods(["GET", "POST"])
-# def index(request):
-#     form = DatasetUploadForm(request.POST or None, request.FILES or None)
-
-#     if request.method == "POST" and form.is_valid():
-#         uploaded_file = form.cleaned_data["dataset"]
-#         safe_name = f"{uuid.uuid4().hex}_{Path(uploaded_file.name).name}"
-#         destination = _get_upload_directory() / safe_name
-
-#         with destination.open("wb+") as output:
-#             for chunk in uploaded_file.chunks():
-#                 output.write(chunk)
-
-#         request.session[SESSION_FILE_KEY] = str(destination)
-#         request.session[SESSION_NAME_KEY] = Path(uploaded_file.name).name
-
-#         try:
-#             _read_dataframe(request)
-#         except Exception as exc:
-#             destination.unlink(missing_ok=True)
-#             request.session.pop(SESSION_FILE_KEY, None)
-#             request.session.pop(SESSION_NAME_KEY, None)
-#             form.add_error("dataset", str(exc))
-#         else:
-#             messages.success(request, "Dataset uploaded successfully.")
-#             return redirect("project1:visualize")
-
-#     return render(
-#         request,
-#         "project1/index.html",
-#         {
-#             "form": form,
-#             "current_step": 1,
-#         },
-#     )
-
-
-# def visualize(request):
-#     try:
-#         dataframe = _read_dataframe(request)
-#     except (FileNotFoundError, ValueError) as exc:
-#         messages.error(request, str(exc))
-#         return redirect("project1:index")
-
-#     preview = dataframe.head(8).fillna("Missing").to_dict(orient="records")
-#     heatmap = _build_heatmap(dataframe)
-
-#     return render(
-#         request,
-#         "project1/visualize.html",
-#         {
-#             "current_step": 2,
-#             "dataset_name": request.session.get(SESSION_NAME_KEY, "Uploaded dataset"),
-#             "summary": _dataset_summary(dataframe),
-#             "columns": dataframe.columns.tolist(),
-#             "preview": preview,
-#             "heatmap": heatmap,
-#         },
-#     )
-
-
-# @require_http_methods(["GET", "POST"])
-# def mtrain(request):
-#     try:
-#         dataframe = _read_dataframe(request)
-#     except (FileNotFoundError, ValueError) as exc:
-#         messages.error(request, str(exc))
-#         return redirect("project1:index")
-
-#     form = TrainingForm(
-#         request.POST or None,
-#         columns=dataframe.columns.tolist(),
-#     )
-#     result = None
-
-#     if request.method == "POST":
-#         if form.is_valid():
-#             try:
-#                 result = train_model(
-#                     dataframe=dataframe,
-#                     target_column=form.cleaned_data["target_column"],
-#                     model_name=form.cleaned_data["model_name"],
-#                     test_size_percent=form.cleaned_data["test_size"],
-#                     normalize=form.cleaned_data["normalize"],
-#                     fit_intercept=form.cleaned_data["fit_intercept"],
-#                 )
-#             except Exception as exc:
-#                 messages.error(
-#                     request,
-#                     f"We could not train the model. {exc}",
-#                 )
-#         else:
-#             messages.error(
-#                 request,
-#                 "Please review the highlighted fields before training.",
-#             )
-
-#     return render(
-#         request,
-#         "project1/mtrain.html",
-#         {
-#             "current_step": 3,
-#             "dataset_name": request.session.get(SESSION_NAME_KEY, "Uploaded dataset"),
-#             "form": form,
-#             "result": result,
-#         },
-#     )
-
-
-# def show_plot(request):
-#     return redirect("project1:visualize")
-
-
-# def reset(request):
-#     stored_path = request.session.pop(SESSION_FILE_KEY, None)
-#     request.session.pop(SESSION_NAME_KEY, None)
-
-#     if stored_path:
-#         try:
-#             Path(stored_path).unlink(missing_ok=True)
-#         except OSError:
-#             pass
-
-#     messages.info(request, "The previous dataset was cleared.")
-#     return redirect("project1:index")
-
-
 from __future__ import annotations
 
 import base64
@@ -587,65 +358,102 @@ def index(request):
         context,
     )
 
+def _build_simple_graph_data(dataframe, max_points=250):
+    """
+    Prepare numerical data for the simple relationship graph.
+
+    A maximum number of rows is used so that large datasets do not
+    make the browser slow.
+    """
+
+    numeric_data = dataframe.select_dtypes(
+        include="number",
+    ).copy()
+
+    numeric_columns = numeric_data.columns.tolist()
+
+    if len(numeric_columns) < 2:
+        return {
+            "columns": [],
+            "records": [],
+            "default_x": "",
+            "default_y": "",
+        }
+
+    # Limit the number of displayed points.
+    if len(numeric_data) > max_points:
+        numeric_data = numeric_data.sample(
+            n=max_points,
+            random_state=42,
+        )
+
+    # Convert missing and invalid values into JSON-compatible values.
+    numeric_data = numeric_data.where(
+        pd.notna(numeric_data),
+        None,
+    )
+
+    return {
+        "columns": numeric_columns,
+        "records": numeric_data.to_dict(
+            orient="records",
+        ),
+        "default_x": numeric_columns[0],
+        "default_y": numeric_columns[1],
+    }
+
 
 @require_http_methods(["GET"])
 def visualize(request):
-    """
-    Review page.
-
-    Direct access is blocked when no dataset exists.
-    """
-
     if not _has_uploaded_dataset(request):
         messages.warning(
             request,
-            "Please upload a dataset before reviewing data.",
+            "Please upload a dataset before reviewing the data.",
         )
-
         return redirect("project1:index")
 
     try:
         dataframe = _read_dataframe(request)
 
-    except (
-        FileNotFoundError,
-        ValueError,
-    ) as exc:
+    except Exception as error:
         messages.error(
             request,
-            str(exc),
+            f"The dataset could not be opened: {error}",
         )
-
         return redirect("project1:index")
 
-    preview = (
-        dataframe.head(8)
-        .fillna("Missing")
-        .to_dict(orient="records")
+    preview = dataframe.head(10).to_dict(
+        orient="records",
     )
 
-    heatmap = _build_heatmap(dataframe)
-
-    context = _base_context(request)
-
-    context.update(
-        {
-            "current_step": 2,
-            "summary": _dataset_summary(
-                dataframe
-            ),
-            "columns": dataframe.columns.tolist(),
-            "preview": preview,
-            "heatmap": heatmap,
-        }
+    simple_graph = _build_simple_graph_data(
+        dataframe,
+        max_points=250,
     )
 
     return render(
         request,
         "project1/visualize.html",
-        context,
-    )
+        {
+            "current_step": 2,
+            "has_dataset": True,
 
+            "dataset_name": request.session.get(
+                SESSION_NAME_KEY,
+                "Uploaded dataset",
+            ),
+
+            "summary": _dataset_summary(dataframe),
+            "columns": dataframe.columns.tolist(),
+            "preview": preview,
+
+            # Simple graph information
+            "numeric_columns": simple_graph["columns"],
+            "graph_records": simple_graph["records"],
+            "default_x_column": simple_graph["default_x"],
+            "default_y_column": simple_graph["default_y"],
+        },
+    )
 
 @require_http_methods(["GET", "POST"])
 def mtrain(request):

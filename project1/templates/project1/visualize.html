@@ -110,37 +110,143 @@
           </div>
         </section>
 
-        <section class="content-card">
-          <div class="section-heading">
+        <section class="content-card simple-graph-section">
+          <div class="simple-graph-header">
             <div>
-              <span class="section-icon">↔</span>
-              <div>
-                <h2>Relationship overview</h2>
-                <p>
-                  Values near +1 move together. Values near −1 move in opposite
-                  directions. Values near 0 have little linear relationship.
-                </p>
-              </div>
+              <span class="section-kicker"> Simple visualization </span>
+
+              <h2>Explore Two Values</h2>
+
+              <p>
+                Select two numerical columns to see how their values are
+                connected.
+              </p>
+            </div>
+
+            <span class="simple-graph-badge"> Each dot is one row </span>
+          </div>
+
+          {% if numeric_columns %}
+
+          <div class="simple-graph-controls">
+            <div class="simple-graph-field">
+              <label for="graph-x-column"> Horizontal value </label>
+
+              <select id="graph-x-column">
+                {% for column in numeric_columns %}
+
+                <option
+                  value="{{ column }}"
+                  {%
+                  if
+                  column=""
+                  ="default_x_column"
+                  %}
+                  selected
+                  {%
+                  endif
+                  %}
+                >
+                  {{ column }}
+                </option>
+
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="simple-graph-switch-icon">compared with</div>
+
+            <div class="simple-graph-field">
+              <label for="graph-y-column"> Vertical value </label>
+
+              <select id="graph-y-column">
+                {% for column in numeric_columns %}
+
+                <option
+                  value="{{ column }}"
+                  {%
+                  if
+                  column=""
+                  ="default_y_column"
+                  %}
+                  selected
+                  {%
+                  endif
+                  %}
+                >
+                  {{ column }}
+                </option>
+
+                {% endfor %}
+              </select>
             </div>
           </div>
 
-          {% if heatmap %}
-          <div class="chart-frame">
-            <img src="{{ heatmap }}" alt="Correlation heatmap" />
-          </div>
-          <div class="insight-note">
-            <strong>How to use this:</strong>
-            Strong relationships can help prediction, but a high correlation
-            does not automatically mean that one column causes another.
-          </div>
-          {% else %}
-          <div class="empty-state">
-            <span>i</span>
+          <div class="simple-graph-message">
+            <span id="simple-graph-message-icon" aria-hidden="true"> • </span>
+
             <div>
-              <strong>No heatmap is available</strong>
-              <p>At least two numeric columns are required for this chart.</p>
+              <strong id="simple-graph-message-title">
+                Looking for a pattern
+              </strong>
+
+              <p id="simple-graph-message-text">
+                The graph will explain the visible pattern in simple language.
+              </p>
             </div>
           </div>
+
+          <div class="simple-graph-canvas-wrapper">
+            <canvas
+              id="simple-relationship-chart"
+              aria-label="
+                    Graph comparing two numerical columns
+                "
+            ></canvas>
+          </div>
+
+          <div class="simple-graph-guide">
+            <div>
+              <span class="guide-symbol">↗</span>
+
+              <p>
+                <strong>Dots move upward</strong>
+
+                Both values generally increase together.
+              </p>
+            </div>
+
+            <div>
+              <span class="guide-symbol">↘</span>
+
+              <p>
+                <strong>Dots move downward</strong>
+
+                One value increases while the other decreases.
+              </p>
+            </div>
+
+            <div>
+              <span class="guide-symbol">••</span>
+
+              <p>
+                <strong>Dots are scattered</strong>
+
+                No obvious relationship is visible.
+              </p>
+            </div>
+          </div>
+
+          {{ graph_records|json_script:"simple-graph-data" }} {% else %}
+
+          <div class="simple-graph-empty">
+            <span aria-hidden="true">⌁</span>
+
+            <h3>Not enough numerical columns</h3>
+
+            <p>This graph needs at least two numerical columns.</p>
+          </div>
+
           {% endif %}
         </section>
 
@@ -155,4 +261,252 @@
       </main>
     </div>
   </body>
+
+  {% if numeric_columns %}
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const dataElement = document.getElementById("simple-graph-data");
+
+      const canvas = document.getElementById("simple-relationship-chart");
+
+      const xSelector = document.getElementById("graph-x-column");
+
+      const ySelector = document.getElementById("graph-y-column");
+
+      const messageIcon = document.getElementById("simple-graph-message-icon");
+
+      const messageTitle = document.getElementById(
+        "simple-graph-message-title",
+      );
+
+      const messageText = document.getElementById("simple-graph-message-text");
+
+      if (!dataElement || !canvas || !xSelector || !ySelector) {
+        return;
+      }
+
+      const records = JSON.parse(dataElement.textContent);
+
+      let relationshipChart = null;
+
+      function getValidPoints(xColumn, yColumn) {
+        return records
+          .map(function (row) {
+            return {
+              x: Number(row[xColumn]),
+              y: Number(row[yColumn]),
+            };
+          })
+          .filter(function (point) {
+            return Number.isFinite(point.x) && Number.isFinite(point.y);
+          });
+      }
+
+      function calculateCorrelation(points) {
+        if (points.length < 3) {
+          return null;
+        }
+
+        const xMean =
+          points.reduce(function (total, point) {
+            return total + point.x;
+          }, 0) / points.length;
+
+        const yMean =
+          points.reduce(function (total, point) {
+            return total + point.y;
+          }, 0) / points.length;
+
+        let numerator = 0;
+        let xDifferenceTotal = 0;
+        let yDifferenceTotal = 0;
+
+        points.forEach(function (point) {
+          const xDifference = point.x - xMean;
+          const yDifference = point.y - yMean;
+
+          numerator += xDifference * yDifference;
+
+          xDifferenceTotal += xDifference * xDifference;
+
+          yDifferenceTotal += yDifference * yDifference;
+        });
+
+        const denominator = Math.sqrt(xDifferenceTotal * yDifferenceTotal);
+
+        if (denominator === 0) {
+          return null;
+        }
+
+        return numerator / denominator;
+      }
+
+      function updateExplanation(correlation, xColumn, yColumn) {
+        if (correlation === null) {
+          messageIcon.textContent = "•";
+
+          messageTitle.textContent = "Not enough variation";
+
+          messageText.textContent =
+            "A clear pattern could not be calculated " + "for these columns.";
+
+          return;
+        }
+
+        const strength = Math.abs(correlation);
+
+        let strengthText = "weak";
+
+        if (strength >= 0.75) {
+          strengthText = "very clear";
+        } else if (strength >= 0.5) {
+          strengthText = "clear";
+        } else if (strength >= 0.25) {
+          strengthText = "slight";
+        }
+
+        if (correlation >= 0.15) {
+          messageIcon.textContent = "↗";
+
+          messageTitle.textContent = "The dots generally move upward";
+
+          messageText.textContent =
+            "There is a " +
+            strengthText +
+            " upward pattern. As " +
+            xColumn +
+            " increases, " +
+            yColumn +
+            " often increases too.";
+        } else if (correlation <= -0.15) {
+          messageIcon.textContent = "↘";
+
+          messageTitle.textContent = "The dots generally move downward";
+
+          messageText.textContent =
+            "There is a " +
+            strengthText +
+            " downward pattern. As " +
+            xColumn +
+            " increases, " +
+            yColumn +
+            " often decreases.";
+        } else {
+          messageIcon.textContent = "••";
+
+          messageTitle.textContent = "The dots are widely scattered";
+
+          messageText.textContent =
+            "No obvious relationship was found " +
+            "between " +
+            xColumn +
+            " and " +
+            yColumn +
+            ".";
+        }
+      }
+
+      function drawGraph() {
+        const xColumn = xSelector.value;
+        const yColumn = ySelector.value;
+
+        const points = getValidPoints(xColumn, yColumn);
+
+        const correlation = calculateCorrelation(points);
+
+        updateExplanation(correlation, xColumn, yColumn);
+
+        if (relationshipChart) {
+          relationshipChart.destroy();
+        }
+
+        relationshipChart = new Chart(canvas, {
+          type: "scatter",
+
+          data: {
+            datasets: [
+              {
+                label: xColumn + " compared with " + yColumn,
+
+                data: points,
+
+                pointRadius: 5,
+                pointHoverRadius: 7,
+
+                backgroundColor: "rgba(91, 103, 241, 0.65)",
+
+                borderColor: "rgba(91, 103, 241, 1)",
+
+                borderWidth: 1,
+              },
+            ],
+          },
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            parsing: false,
+
+            plugins: {
+              legend: {
+                display: false,
+              },
+
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return (
+                      xColumn +
+                      ": " +
+                      context.parsed.x +
+                      ", " +
+                      yColumn +
+                      ": " +
+                      context.parsed.y
+                    );
+                  },
+                },
+              },
+            },
+
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: xColumn,
+                },
+
+                grid: {
+                  color: "rgba(100, 116, 139, 0.10)",
+                },
+              },
+
+              y: {
+                title: {
+                  display: true,
+                  text: yColumn,
+                },
+
+                grid: {
+                  color: "rgba(100, 116, 139, 0.10)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      xSelector.addEventListener("change", drawGraph);
+
+      ySelector.addEventListener("change", drawGraph);
+
+      drawGraph();
+    });
+  </script>
+
+  {% endif %}
 </html>
