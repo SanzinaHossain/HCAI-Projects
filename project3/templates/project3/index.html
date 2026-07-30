@@ -1,9 +1,21 @@
-{% extends 'base.html' %} {% load static %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'project1/style.css' %}" />
-{% endblock %} {% block content %}
-<div class="dashboard">
-  <div class="hero-card">
-    <h1>Automated Machine Learning</h1>
-  </div>
-</div>
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>AG News Baseline Classifier</h1>
+
+<p><strong>Training Samples:</strong> {{ train_samples }}</p>
+<p><strong>Testing Samples:</strong> {{ test_samples }}</p>
+
+<h2>Baseline Model</h2>
+
+<ul>
+    <li>Vectorizer : TF-IDF</li>
+    <li>Classifier : Logistic Regression</li>
+</ul>
+
+<h2>Test Accuracy</h2>
+
+<h1>{{ accuracy }}%</h1>
+
 {% endblock %}
