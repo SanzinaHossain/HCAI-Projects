@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AG News - Simulated Expert</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { font-size: 22px; }
+        h2 { font-size: 18px; margin-top: 30px; }
+        table { border-collapse: collapse; margin-top: 10px; }
+        td, th { border: 1px solid #ccc; padding: 6px 12px; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <h1>Task 2: Simulated Expert</h1>
+
+    <table>
+        <tr><th>Overall Accuracy</th><td>{{ expert_accuracy }}%</td></tr>
+    </table>
+
+    <h2>Per-class accuracy</h2>
+    <table>
+        <tr>
+            <th>Class</th>
+            <th>Accuracy</th>
+        </tr>
+        {% for class_name, acc in expert_per_class.items %}
+        <tr>
+            <td>{{ class_name }}</td>
+            <td>{{ acc }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>
