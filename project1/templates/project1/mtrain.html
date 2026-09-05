@@ -574,9 +574,14 @@
           </span>
         </a>
 
-        <a class="text-button danger-link" href="{% url 'project1:reset' %}">
-          Start with another file
-        </a>
+        <div class="topbar-actions">
+          <a class="main-home-button" href="/" aria-label="Go to main home page">
+            ← Main Home
+          </a>
+          <a class="text-button danger-link" href="{% url 'project1:reset' %}">
+            Start with another file
+          </a>
+        </div>
       </header>
 
       <main class="page">
