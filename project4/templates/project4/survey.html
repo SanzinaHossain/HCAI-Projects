@@ -1,0 +1,94 @@
+{% extends 'project4/base.html' %} {% block title %}Method Feedback · Movie
+Preference Study{% endblock %} {% block content %}
+<section class="panel narrow">
+  <div class="page-nav">
+    <a class="back-home" href="{% url 'project4:landing' %}">← Project 4 Home</a
+    ><span>Method {{ method_number }} of 2 · Short feedback</span>
+  </div>
+  <span class="pill">Short reflection</span>
+  <h2>
+    How was the {% if kind == 'pairwise' %}two-movie choice{% else %}ten-movie
+    ranking{% endif %} method?
+  </h2>
+  <p class="muted">
+    These questions measure your experience with the interface. They do not
+    change your movie preference model.
+  </p>
+  {% if error %}
+  <div class="note error">{{ error }}</div>
+  {% endif %} {% if method_time is not None %}
+  <div class="note">
+    <b>Method completion time recorded:</b> about {{ method_time|floatformat:0 }} seconds. This is one of the study's secondary measures.
+  </div>
+  {% endif %}
+
+  <details class="info-toggle">
+    <summary>
+      <span class="info-icon">i</span> What do these fields mean?
+    </summary>
+    <div class="toggle-content field-guide">
+      <div>
+        <b>Ease</b
+        ><span
+          >How simple or difficult it felt to give your preferences using this
+          method.</span
+        >
+      </div>
+      <div>
+        <b>Confidence</b
+        ><span
+          >How well you think your answers represented what you would genuinely
+          choose to watch.</span
+        >
+      </div>
+      <div>
+        <b>Optional comment</b
+        ><span
+          >Any reason behind your ratings, confusion, effort, or feature you
+          liked. You may leave it blank.</span
+        >
+      </div>
+    </div>
+  </details>
+
+  <form method="post">
+    {% csrf_token %}
+    <label>How easy was this method?</label>
+    <div class="scale scale-labelled">
+      {% for n in '12345' %}<label
+        ><input required type="radio" name="ease" value="{{ n }}" /><span
+          >{{ n }}</span
+        ></label
+      >{% endfor %}
+    </div>
+    <small class="scale-help"
+      ><b>1</b> = very difficult · <b>3</b> = neutral · <b>5</b> = very
+      easy</small
+    >
+
+    <label
+      >How confident are you that your answers reflected your real
+      preferences?</label
+    >
+    <div class="scale scale-labelled">
+      {% for n in '12345' %}<label
+        ><input required type="radio" name="confidence" value="{{ n }}" /><span
+          >{{ n }}</span
+        ></label
+      >{% endfor %}
+    </div>
+    <small class="scale-help"
+      ><b>1</b> = not confident · <b>3</b> = moderately confident · <b>5</b> =
+      very confident</small
+    >
+
+    <label>Optional comment</label>
+    <textarea
+      name="comment"
+      rows="4"
+      placeholder="For example: ranking ten movies took more effort, or comparing two at a time felt repetitive."
+    ></textarea>
+    <button class="btn" type="submit">Continue →</button>
+  </form>
+</section>
+{% endblock %}

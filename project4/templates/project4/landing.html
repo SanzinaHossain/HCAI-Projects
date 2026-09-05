@@ -1,0 +1,242 @@
+{% extends 'project4/base.html' %} {% block title %}Project 4 Home · Movie
+Preference Study{% endblock %} {% block content %}
+<section class="hero">
+  <span class="pill">Preference elicitation</span>
+  <h2>Teach a movie recommender what you like</h2>
+  <p class="lead">
+    This project compares two simple ways of telling a new movie recommender
+    about your taste: choosing between two movies, and ranking ten movies from
+    favourite to least favourite.
+  </p>
+  <div class="plain-summary">
+    <b>What will happen?</b>
+    <span
+      >You will try both methods, answer a few short questions about how they
+      felt, and then make several final movie choices so the two learned models
+      can be compared fairly.</span
+    >
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'project4:start' %}">▶ Start the study</a>
+    <a class="btn secondary" href="{% url 'project4:report' %}"
+      >↓ Download PDF report</a
+    >
+  </div>
+</section>
+
+{% if dataset_error %}
+<div class="note error"><b>Dataset needed.</b> {{ dataset_error }}</div>
+{% else %}
+<div class="note">
+  <b>Dataset ready:</b> {{ movie_count }} unique movies are available from the
+  IMDB 5000 Movie Dataset.
+</div>
+{% endif %}
+
+<section class="section-heading">
+  <span class="pill">Assignment checklist</span>
+  <h2>How every required task is completed</h2>
+  <p class="muted">
+    Open any section below for a non-technical explanation. The PDF report gives
+    the full academic justification and study protocol.
+  </p>
+</section>
+
+<section class="task-checklist">
+  <details class="task-toggle" open>
+    <summary>
+      <span class="task-number">Task 1</span
+      ><span
+        ><b>Choose and extract movie features</b
+        ><small
+          >How a movie becomes information the model can learn from</small
+        ></span
+      ><span class="status">Completed</span>
+    </summary>
+    <div class="toggle-content">
+      <p>
+        Each movie is converted into a small set of understandable
+        characteristics: genres, release year, duration, IMDb score, whether the
+        language is English, and content rating. Genres and ratings become
+        yes/no indicators, while numerical values are scaled so one field does
+        not dominate only because its numbers are larger.
+      </p>
+      <div class="simple-example">
+        <b>Example:</b> a recent English-language Action movie can be
+        represented as “Action = yes, Comedy = no, newer year = positive value,
+        English = yes,” plus the other fields.
+      </div>
+      <p class="muted">
+        Why this choice? The user gives only a limited number of answers, so a
+        compact and interpretable feature set is easier to learn reliably than
+        thousands of actor or director identity fields.
+      </p>
+    </div>
+  </details>
+
+  <details class="task-toggle">
+    <summary>
+      <span class="task-number">Task 2</span
+      ><span
+        ><b>Extend Bradley–Terry to a full ranking</b
+        ><small>How the model learns from a list of ten movies</small></span
+      ><span class="status">Completed</span>
+    </summary>
+    <div class="toggle-content">
+      <p>
+        For two movies, Bradley–Terry says the movie with the higher hidden
+        preference score is more likely to be chosen. For a ranking, this
+        project uses the Plackett–Luce extension: treat the ranking as a
+        sequence of choices.
+      </p>
+      <ol class="friendly-steps">
+        <li>Choose the favourite from all 10 movies.</li>
+        <li>Choose the favourite from the 9 remaining movies.</li>
+        <li>Continue until the complete order is explained.</li>
+      </ol>
+      <p>
+        This is consistent with Bradley–Terry because when only two movies
+        remain, it becomes the same two-item probability model.
+      </p>
+    </div>
+  </details>
+
+  <details class="task-toggle">
+    <summary>
+      <span class="task-number">Task 3</span
+      ><span
+        ><b>Design the complete user study</b
+        ><small
+          >Hypotheses, participants, procedure, measures, and analysis</small
+        ></span
+      ><span class="status">Completed</span>
+    </summary>
+    <div class="toggle-content">
+      <p>
+        The proposed study uses a <b>within-subject, counterbalanced design</b>:
+        every participant tries both methods, while the starting method is
+        randomly changed between participants. This makes the comparison fairer
+        because each person acts as their own comparison.
+      </p>
+      <p>
+        The plan includes recruitment and eligibility, informed consent,
+        randomized method order, both elicitation methods, ease/confidence
+        questions, held-out validation choices, completion-time measurement,
+        analysis, privacy, and debriefing. The study is designed only; the
+        assignment does not require recruiting participants.
+      </p>
+      <a class="text-link" href="{% url 'project4:report' %}"
+        >Read the full protocol in the PDF report →</a
+      >
+    </div>
+  </details>
+
+  <details class="task-toggle">
+    <summary>
+      <span class="task-number">Task 4</span
+      ><span
+        ><b>Implement the participant interface</b
+        ><small>The usable study you can start from this page</small></span
+      ><span class="status">Completed</span>
+    </summary>
+    <div class="toggle-content">
+      <p>
+        The interface contains consent, pairwise choices, ten-movie ranking,
+        short post-method questions, final held-out choices, results,
+        recommendations, progress information, help toggles, field definitions,
+        keyboard/touch-friendly ranking controls, and Project 4 Home and Main
+        Home navigation on every page.
+      </p>
+      <p>
+        <b>Important:</b> this is a course demonstration. It keeps progress in
+        the temporary study session and does not claim that a real user study
+        has already been conducted.
+      </p>
+    </div>
+  </details>
+</section>
+
+<section class="grid method-grid">
+  <article class="card">
+    <div class="num">01</div>
+    <h3>Two-movie choice</h3>
+    <p>
+      See two movies and choose the one you would rather watch. Each answer
+      gives one direct preference.
+    </p>
+  </article>
+  <article class="card">
+    <div class="num">02</div>
+    <h3>Ten-movie ranking</h3>
+    <p>
+      Arrange ten movies from most preferred to least preferred. One ranking
+      communicates many relative preferences.
+    </p>
+  </article>
+  <article class="card">
+    <div class="num">03</div>
+    <h3>Fair comparison</h3>
+    <p>
+      Separate final choices are not used for learning. They are kept aside to
+      check which learned model better predicts your preferences.
+    </p>
+  </article>
+</section>
+
+<section class="explain">
+  <h2>Helpful terms in simple words</h2>
+  <details>
+    <summary>What is a “preference”?</summary>
+    <p>
+      Your personal choice. For example, if you would rather watch Movie A than
+      Movie B, the study treats that as evidence that A is preferred to B for
+      you.
+    </p>
+  </details>
+  <details>
+    <summary>What is “preference elicitation”?</summary>
+    <p>
+      It simply means asking questions that help a system learn what a person
+      likes.
+    </p>
+  </details>
+  <details>
+    <summary>What is a “feature”?</summary>
+    <p>
+      A feature is one piece of movie information used by the model, such as
+      genre, release year, duration, language, or content rating.
+    </p>
+  </details>
+  <details>
+    <summary>What is the “utility score”?</summary>
+    <p>
+      It is an internal numerical score produced by the model from movie
+      features and estimated user preferences. A higher score means the model
+      believes the user is more likely to prefer that movie.
+    </p>
+  </details>
+  <details>
+    <summary>What is Bradley–Terry?</summary>
+    <p>
+      It is a mathematical model for choices between two items. It turns the
+      difference between their utility scores into the probability that one will
+      be chosen over the other.
+    </p>
+  </details>
+  <details>
+    <summary>What is Plackett–Luce?</summary>
+    <p>
+      It extends the same choice idea to a whole ranking by repeatedly selecting
+      the most preferred movie from those still remaining.
+    </p>
+  </details>
+  <details>
+    <summary>What does “held-out” mean?</summary>
+    <p>
+      Held-out choices are saved until the end and are not used to train either
+      model. They act like a small test so both methods can be evaluated on the
+      same unseen decisions.
+    </p>
+  </details>
+</section>
+{% endblock %}
