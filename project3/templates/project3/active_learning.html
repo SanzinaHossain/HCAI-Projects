@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Task 4: Active Learning for Expert Competence Discovery</h1>
+
+<p><strong>Classifier-only accuracy:</strong> {{ classifier_only_accuracy }}%</p>
+<p><strong>Total training examples available:</strong> {{ total_available_examples }}</p>
+
+<h2>Recommended strategy: {{ recommended_strategy }}</h2>
+<p>
+  Using just <strong>{{ recommended_budget }}</strong> expert queries
+  (out of {{ total_available_examples }} available) with the hybrid strategy:
+</p>
+<p><strong>System accuracy:</strong> {{ recommended_result.system_accuracy }}%</p>
+<p><strong>Deferral rate:</strong> {{ recommended_result.deferral_rate }}%</p>
+
+<h2>Learning curves: system accuracy vs. number of expert queries</h2>
+<table>
+  <tr>
+    <th>Queries</th>
+    <th>Uncertainty sampling</th>
+    <th>Random sampling</th>
+    <th>Hybrid (recommended)</th>
+  </tr>
+  {% for row in curve_rows %}
+  <tr>
+    <td>{{ row.queries }}</td>
+    <td>{{ row.uncertainty_acc }}%</td>
+    <td>{{ row.random_acc }}%</td>
+    <td>{{ row.hybrid_acc }}%</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<p>
+  Note: pure uncertainty sampling (querying only the classifier's
+  lowest-confidence examples) collapses at low query budgets because the
+  resulting labeled pool is unrepresentative of the full confidence
+  distribution, miscalibrating the deferral threshold. The hybrid strategy
+  (50% uncertainty + 50% random queries) avoids this by keeping the labeled
+  pool representative while still concentrating queries on the
+  decision-relevant region.
+</p>
+{% endblock %}

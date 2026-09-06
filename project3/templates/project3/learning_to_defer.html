@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Task 3: Learning-to-Defer</h1>
+
+<p><strong>Classifier-only accuracy:</strong> {{ classifier_only_accuracy }}%</p>
+<p><strong>Expert-only accuracy:</strong> {{ expert_only_accuracy }}%</p>
+<p><strong>Learning-to-Defer system accuracy:</strong> {{ system_accuracy }}%</p>
+<p><strong>Oracle upper bound (perfect deferral):</strong> {{ oracle_upper_bound }}%</p>
+<p><strong>Overall deferral rate:</strong> {{ deferral_rate }}%</p>
+
+<h2>Per-class breakdown</h2>
+<table>
+  <tr>
+    <th>Class</th>
+    <th>Deferral rate</th>
+    <th>System accuracy</th>
+  </tr>
+  {% for name, stats in per_class.items %}
+  <tr>
+    <td>{{ name }}</td>
+    <td>{{ stats.defer_rate }}%</td>
+    <td>{{ stats.system_acc }}%</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
