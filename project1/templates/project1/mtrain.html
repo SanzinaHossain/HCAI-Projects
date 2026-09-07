@@ -1,497 +1,1343 @@
-{% load static %}
-<!DOCTYPE html>
+<!-- {% load static %}
+
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Model Training Dashboard</title>
-    <link rel="stylesheet" href="{% static 'mtrain.css' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
 
-    <div id="ml-training-page">
-        <header class="main-page-header">
-            <h1>Machine Learning Model Training</h1>
-        </header>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <div class="dashboard-grid">
-            
-            <div class="train-container">
-                <div class="box-header">
-                    <h2>Model Setup</h2>
-                </div>
+    <title>Train Model · AutoML Guide</title>
 
-                <!-- Traditional form submission -->
-                <form class="train-form" method="POST" action="{% url 'project1:mtrain' %}">
-                    {% csrf_token %}
-                    
-                    <div class="form-group">
-                        <label for="target_column">Select Target Column (What to predict)</label>
-                        <div class="select-wrapper">
-                            <select id="target_column" name="target_column" class="dropdown" required>
-                                <option value="">-- Select target column --</option>
-                                {% for column in columns %}
-                                    <option value="{{ column }}">{{ column }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <small>Choose the column you want to predict</small>
-                    </div>
+    <link
+      rel="stylesheet"
+      href="{% static 'project1/style.css' %}?v=20260718-10"
+    />
+  </head>
 
-                    <!-- Model Selection - MOVED HERE (right after target column) -->
-                    <div class="form-group">
-                        <label for="model-select">Select Model</label>
-                        <div class="select-wrapper">
-                            <select id="model-select" name="model_name" class="dropdown" onchange="updateHyperparams(this.value)">
-                                <option value="linear_regression">Logistic Regression</option>
-                                <option value="decision_tree">Decision Tree</option>
-                                <!-- <option value="knn">K-Nearest Neighbors (KNN)</option> -->
-                                <option value="svm">Support Vector Machine (SVM)</option>
-                                <!-- <option value="random_forest">Random Forest</option> -->
-                            </select>
-                            <span class="custom-arrow">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                            </span>
-                        </div>
-                    </div>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="{% url 'project1:index' %}">
+          <span class="brand-mark">AI</span>
+          <span>
+            <strong>Automated Machine Learning</strong>
+            <small>Human-friendly machine learning</small>
+          </span>
+        </a>
+      </header>
 
-                    <!-- Train/Test Split Section - MOVED HERE (after model selection) -->
-                    <div class="form-group split-section">
-                        <div class="split-labels-row">
-                            <span class="label-text">Train: <strong id="trainLabel">80%</strong></span>
-                            <span class="label-text">Test: <strong id="testLabel">20%</strong></span>
-                        </div>
-                        
-                        <input type="range" id="split-slider" name="split_percentage" min="10" max="95" value="80" class="slider"
-                               oninput="updateSplitUI(this.value)">
-                        
-                        <div id="feedback-note" class="feedback-box success">
-                            ✅ Good choice. Healthy balance for training and validation.
-                        </div>
-                    </div>
-
-                    <!-- Dynamic Hyperparameters Section -->
-                    <div id="hyperparams-section" class="form-group">
-                        <label>Hyperparameters</label>
-                        <div id="hyperparams-container"></div>
-                    </div>
-
-                    <button type="submit" class="train-btn">
-                        Train Model
-                    </button>
-                </form>
-            </div>
-
-            <div class="train-container">
-                <div class="box-header">
-                    <h2>Training Results</h2>
-                </div>
-                <div class="results-content">
-                    {% if training_result %}
-                        <div class="results-split">
-                            
-                            <div class="results-left">
-                                <div class="info-card">
-                                    <div class="card-icon">🤖</div>
-                                    <h3 class="card-title">Model Details</h3>
-                                    <div class="info-item">
-                                        <span class="info-label">Model Name</span>
-                                        <span class="info-value">{{ training_result.model_name }}</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Train Split</span>
-                                        <span class="info-value">{{ training_result.train_split }}%</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Test Split</span>
-                                        <span class="info-value">{{ training_result.test_split }}%</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Samples</span>
-                                        <span class="info-value">{{ training_result.num_samples }}</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Features</span>
-                                        <span class="info-value">{{ training_result.num_features }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="results-right">
-                                <div class="performance-card">
-                                    <div class="card-icon">📊</div>
-                                    <h3 class="card-title">Model Performance</h3>
-                                    <div class="metrics-grid">
-                                        {% for key, value in training_result.metrics.items %}
-                                            <div class="metric-card">
-                                                <span class="metric-name">{{ key }}:</span>
-                                                <span class="metric-value">{{ value }}</span>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <div class="evaluation-card">
-                                    <h4>🎯 Performance Evaluation</h4>
-                                    {% for key, value in training_result.metrics.items %}
-                                        {% if key == "F1-Score" %}
-                                            {% if value >= 0.95 %}
-                                                <p class="evaluation-outstanding">🏆 OUTSTANDING MODEL — Exceptional performance for production</p>
-                                                <p class="evaluation-recommendation">💡 Recommendation: This model is production-ready! 🚀</p>
-                                            {% elif value >= 0.90 %}
-                                                <p class="evaluation-excellent">⭐ EXCELLENT MODEL — Highly reliable</p>
-                                                <p class="evaluation-recommendation">💡 Recommendation: This model is production-ready! 🚀</p>
-                                            {% elif value >= 0.80 %}
-                                                <p class="evaluation-verygood">✅ VERY GOOD MODEL — Strong performance</p>
-                                                <p class="evaluation-recommendation">💡 Recommendation: Good model, but consider testing on more data.</p>
-                                            {% elif value >= 0.70 %}
-                                                <p class="evaluation-good">📈 GOOD MODEL — Acceptable for most tasks</p>
-                                                <p class="evaluation-recommendation">💡 Recommendation: Good model, but consider testing on more data.</p>
-                                            {% elif value >= 0.60 %}
-                                                <p class="evaluation-warning">⚠️ NEEDS IMPROVEMENT — Consider feature engineering</p>
-                                                <p class="evaluation-recommendation">💡 Recommendation: Try Random Forest or tune hyperparameters for better results.</p>
-                                            {% else %}
-                                                <p class="evaluation-poor">❌ POOR MODEL — Try different model or more data</p>
-                                                <p class="evaluation-recommendation">💡 Recommendation: Try Random Forest or tune hyperparameters for better results.</p>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            
-                        </div>
-                    {% elif error %}
-                        <div class="error-box">
-                            <h3>❌ Error</h3>
-                            <p>{{ error }}</p>
-                        </div>
-                    {% else %}
-                        <div class="placeholder-icon">📊</div>
-                        <p>Select a target column, model, and click "Train Model" to see results.</p>
-                    {% endif %}
-                </div>
-            </div>
-
+      <main class="page">
+        {% include "project1/stepper.html" %} {% if messages %}
+        <div class="message-stack">
+          {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
         </div>
+        {% endif %}
+
+        <section class="page-heading">
+          <div>
+            <span class="eyebrow"> Step 3 of 3 · Build your model </span>
+
+            <h1>Choose what you want to predict.</h1>
+
+            <p>
+              Recommended settings are already selected. You can train
+              immediately or adjust the options after reading their
+              explanations.
+            </p>
+          </div>
+
+          <div class="file-chip">
+            <span>CSV</span>
+
+            <div>
+              <strong>{{ dataset_name }}</strong>
+              <small>Ready for training</small>
+            </div>
+          </div>
+        </section>
+
+        <div class="training-layout">
+          <section class="content-card setup-card">
+            <div class="section-heading">
+              <div>
+                <span class="section-icon">⚙</span>
+
+                <div>
+                  <h2>Model setup</h2>
+
+                  <p>Follow the three choices below.</p>
+                </div>
+              </div>
+
+              <span class="recommended-badge"> Recommended defaults </span>
+            </div>
+
+            <form method="post" class="training-form" id="training-form">
+              {% csrf_token %}
+
+              <div class="form-section">
+                <div class="field-heading">
+                  <span class="choice-number"> 1 </span>
+
+                  <div>
+                    <label for="{{ form.target_column.id_for_label }}">
+                      {{ form.target_column.label }}
+                    </label>
+
+                    <p>
+                      Select the column containing the result the model should
+                      learn, such as flower type, customer decision, or house
+                      price.
+                    </p>
+                  </div>
+                </div>
+
+                {{ form.target_column }} {% if form.target_column.errors %}
+                <div class="field-error">
+                  {{ form.target_column.errors|striptags }}
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="form-section">
+                <div class="field-heading">
+                  <span class="choice-number"> 2 </span>
+
+                  <div>
+                    <label for="{{ form.model_name.id_for_label }}">
+                      {{ form.model_name.label }}
+                    </label>
+
+                    <p id="model-description">
+                      Select the learning method used to make predictions.
+                    </p>
+                  </div>
+                </div>
+
+                {{ form.model_name }} {% if form.model_name.errors %}
+                <div class="field-error">
+                  {{ form.model_name.errors|striptags }}
+                </div>
+                {% endif %}
+
+                <div class="model-guide" id="model-guide">
+                  <span class="guide-icon"> i </span>
+
+                  <div>
+                    <strong id="model-title"> Recommended model </strong>
+
+                    <p id="model-detail">
+                      Start with the selected default, then compare another
+                      model after reviewing your first result.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="field-heading">
+                  <span class="choice-number"> 3 </span>
+
+                  <div>
+                    <label for="{{ form.test_size.id_for_label }}">
+                      Choose how much data to test
+                    </label>
+
+                    <p>
+                      The model learns from one part of the data and is checked
+                      on data it has not seen.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="split-summary">
+                  <span>
+                    Learning data:
+                    <strong id="train-value"> 80% </strong>
+                  </span>
+
+                  <span>
+                    Testing data:
+                    <strong id="test-value"> 20% </strong>
+                  </span>
+                </div>
+
+                {{ form.test_size }} {% if form.test_size.errors %}
+                <div class="field-error">
+                  {{ form.test_size.errors|striptags }}
+                </div>
+                {% endif %}
+
+                <div class="range-labels">
+                  <span>More training</span>
+                  <span>More testing</span>
+                </div>
+
+                <div class="success-note">
+                  ✓ An 80/20 split is a strong default for many small datasets.
+                </div>
+              </div>
+
+              <details class="advanced-options">
+                <summary>
+                  <span>
+                    <strong> Advanced options </strong>
+
+                    <small> Optional settings for experienced users </small>
+                  </span>
+
+                  <span>⌄</span>
+                </summary>
+
+                <div class="advanced-content">
+                  <label class="toggle-row">
+                    <span>
+                      <strong> Scale numeric values </strong>
+
+                      <small>
+                        Helps models compare columns with different measurement
+                        ranges.
+                      </small>
+                    </span>
+
+                    {{ form.normalize }}
+
+                    <span class="toggle-ui"></span>
+                  </label>
+
+                  {% if form.normalize.errors %}
+                  <div class="field-error">
+                    {{ form.normalize.errors|striptags }}
+                  </div>
+                  {% endif %}
+
+                  <label class="toggle-row">
+                    <span>
+                      <strong> Allow a baseline value </strong>
+
+                      <small>
+                        Lets linear models learn a starting point instead of
+                        forcing zero.
+                      </small>
+                    </span>
+
+                    {{ form.fit_intercept }}
+
+                    <span class="toggle-ui"></span>
+                  </label>
+
+                  {% if form.fit_intercept.errors %}
+                  <div class="field-error">
+                    {{ form.fit_intercept.errors|striptags }}
+                  </div>
+                  {% endif %}
+                </div>
+              </details>
+
+              <button class="primary-button full-width" type="submit">
+                Train and evaluate model
+
+                <span>→</span>
+              </button>
+            </form>
+          </section>
+
+          <section class="content-card results-card">
+            <div class="section-heading">
+              <div>
+                <span class="section-icon"> ✓ </span>
+
+                <div>
+                  <h2>Results explained</h2>
+
+                  <p>
+                    The important numbers are translated into plain language.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {% if result %}
+
+            <div class="result-hero">
+              <div class="score-ring">
+                <span> {{ result.primary_metric_value }} </span>
+
+                <small> score </small>
+              </div>
+
+              <div>
+                <span class="result-status"> Training completed </span>
+
+                <h3>{{ result.model_label }}</h3>
+
+                <p>{{ result.interpretation }}</p>
+              </div>
+            </div>
+
+            <div class="plain-language-box">
+              <span> What this means </span>
+
+              <p>
+                This score was calculated using testing data that the model did
+                not use while learning. Compare it with another model before
+                deciding which result is most reliable.
+              </p>
+            </div>
+
+            <div class="metric-grid">
+              <article>
+                <span> {{ result.primary_metric_name }} </span>
+
+                <strong> {{ result.primary_metric_value }} </strong>
+              </article>
+
+              {% for name, value in result.secondary_metrics.items %}
+
+              <article>
+                <span> {{ name }} </span>
+
+                <strong> {{ value }} </strong>
+              </article>
+
+              {% endfor %}
+            </div>
+
+            {% if result.predictions_preview %}
+
+            <div class="result-section">
+              <h3>Example predictions</h3>
+
+              <p>
+                These examples come from the testing portion of your dataset.
+              </p>
+
+              <div class="prediction-list">
+                {% for prediction in result.predictions_preview %}
+
+                <div>
+                  <span>
+                    Actual:
+
+                    <strong> {{ prediction.actual }} </strong>
+                  </span>
+
+                  <span>
+                    Predicted:
+
+                    <strong> {{ prediction.predicted }} </strong>
+                  </span>
+                </div>
+
+                {% endfor %}
+              </div>
+            </div>
+
+            {% endif %}
+
+            <div class="next-step-card">
+              <strong> Compare another setup </strong>
+
+              <p>
+                Try another model or testing percentage to check whether the
+                results remain consistent.
+              </p>
+            </div>
+
+            {% else %}
+
+            <div class="empty-results">
+              <span class="empty-illustration"> ◎ </span>
+
+              <h3>Your results will appear here</h3>
+
+              <p>
+                Select the target column, review the recommended settings, and
+                click
+                <strong> Train and evaluate model </strong>.
+              </p>
+
+              <div class="empty-checklist">
+                <span> ✓ Automatic problem detection </span>
+
+                <span> ✓ Missing-value handling </span>
+
+                <span> ✓ Clear score explanation </span>
+              </div>
+            </div>
+
+            {% endif %}
+          </section>
+        </div>
+
+        <div class="bottom-nav">
+          <a class="secondary-button" href="{% url 'project1:visualize' %}">
+            ← Back to data review
+          </a>
+        </div>
+      </main>
     </div>
 
     <script>
-        const HYPERPARAMS = {
-            linear_regression: [
-                {
-                    name: "fit_intercept",
-                    label: "Fit Intercept",
-                    type: "select",
-                    options: [
-                        { value: "true",  text: "True"  },
-                        { value: "false", text: "False" }
-                    ],
-                    default: "true",
-                    hint: "Whether to calculate the intercept for this model."
-                },
-                {
-                    name: "normalize",
-                    label: "Normalize",
-                    type: "select",
-                    options: [
-                        { value: "false", text: "False" },
-                        { value: "true",  text: "True"  }
-                    ],
-                    default: "false",
-                    hint: "Normalize regressors before fitting."
-                }
-            ],
-            decision_tree: [
-                {
-                    name: "max_depth",
-                    label: "Max Depth",
-                    type: "slider",
-                    min: 1, max: 50, step: 1, default: 5,
-                    hint: "Maximum depth of the tree. Higher values risk overfitting."
-                },
-                {
-                    name: "min_samples_split",
-                    label: "Min Samples Split",
-                    type: "slider",
-                    min: 2, max: 20, step: 1, default: 2,
-                    hint: "Minimum samples required to split an internal node."
-                },
-                {
-                    name: "min_samples_leaf",
-                    label: "Min Samples Leaf",
-                    type: "slider",
-                    min: 1, max: 20, step: 1, default: 1,
-                    hint: "Minimum samples required to be at a leaf node."
-                },
-                {
-                    name: "criterion",
-                    label: "Criterion",
-                    type: "select",
-                    options: [
-                        { value: "gini",    text: "Gini"    },
-                        { value: "entropy", text: "Entropy" }
-                    ],
-                    default: "gini",
-                    hint: "Function to measure the quality of a split."
-                }
-            ],
-            /* KNN - HIDDEN (commented out)
-            knn: [
-                {
-                    name: "n_neighbors",
-                    label: "N Neighbors (K)",
-                    type: "slider",
-                    min: 1, max: 50, step: 1, default: 5,
-                    hint: "Number of neighbors to use. Lower K = more complex boundary."
-                },
-                {
-                    name: "weights",
-                    label: "Weights",
-                    type: "select",
-                    options: [
-                        { value: "uniform",  text: "Uniform"  },
-                        { value: "distance", text: "Distance" }
-                    ],
-                    default: "uniform",
-                    hint: "Weight function used in prediction."
-                },
-                {
-                    name: "metric",
-                    label: "Distance Metric",
-                    type: "select",
-                    options: [
-                        { value: "euclidean", text: "Euclidean" },
-                        { value: "manhattan", text: "Manhattan" },
-                        { value: "minkowski", text: "Minkowski" }
-                    ],
-                    default: "euclidean",
-                    hint: "Distance metric for the tree."
-                },
-                {
-                    name: "algorithm",
-                    label: "Algorithm",
-                    type: "select",
-                    options: [
-                        { value: "auto",      text: "Auto"      },
-                        { value: "ball_tree", text: "Ball Tree" },
-                        { value: "kd_tree",   text: "KD Tree"   },
-                        { value: "brute",     text: "Brute"     }
-                    ],
-                    default: "auto",
-                    hint: "Algorithm used to compute nearest neighbors."
-                }
-            ],
-            */
-            svm: [
-                {
-                    name: "C",
-                    label: "Regularization (C)",
-                    type: "slider",
-                    min: 1, max: 100, step: 1, default: 1,
-                    hint: "Regularization parameter. Smaller C = wider margin, more misclassification."
-                },
-                {
-                    name: "kernel",
-                    label: "Kernel",
-                    type: "select",
-                    options: [
-                        { value: "rbf",     text: "RBF (Gaussian)" },
-                        { value: "linear",  text: "Linear"         },
-                        { value: "poly",    text: "Polynomial"     },
-                        { value: "sigmoid", text: "Sigmoid"        }
-                    ],
-                    default: "rbf",
-                    hint: "Kernel type used in the algorithm."
-                },
-                {
-                    name: "gamma",
-                    label: "Gamma",
-                    type: "select",
-                    options: [
-                        { value: "scale", text: "Scale" },
-                        { value: "auto",  text: "Auto"  }
-                    ],
-                    default: "scale",
-                    hint: "Kernel coefficient for 'rbf', 'poly', and 'sigmoid'."
-                },
-                {
-                    name: "degree",
-                    label: "Degree (Poly only)",
-                    type: "slider",
-                    min: 2, max: 10, step: 1, default: 3,
-                    hint: "Degree of the polynomial kernel function."
-                }
-            ],
-            /* Random Forest - HIDDEN (commented out)
-            random_forest: [
-                {
-                    name: "n_estimators",
-                    label: "N Estimators",
-                    type: "slider",
-                    min: 10, max: 500, step: 10, default: 100,
-                    hint: "Number of trees in the forest. More trees = better but slower."
-                },
-                {
-                    name: "max_depth",
-                    label: "Max Depth",
-                    type: "slider",
-                    min: 1, max: 50, step: 1, default: 10,
-                    hint: "Maximum depth of each tree."
-                },
-                {
-                    name: "min_samples_split",
-                    label: "Min Samples Split",
-                    type: "slider",
-                    min: 2, max: 20, step: 1, default: 2,
-                    hint: "Minimum samples required to split an internal node."
-                },
-                {
-                    name: "max_features",
-                    label: "Max Features",
-                    type: "select",
-                    options: [
-                        { value: "sqrt", text: "sqrt" },
-                        { value: "log2", text: "log2" },
-                        { value: "none", text: "None (all)" }
-                    ],
-                    default: "sqrt",
-                    hint: "Number of features to consider at each split."
-                },
-                {
-                    name: "bootstrap",
-                    label: "Bootstrap",
-                    type: "select",
-                    options: [
-                        { value: "true",  text: "True"  },
-                        { value: "false", text: "False" }
-                    ],
-                    default: "true",
-                    hint: "Whether to use bootstrap samples when building trees."
-                }
-            ]
-            */
+      const modelDescriptions = {
+        logistic_regression: {
+          title: "Logistic Regression",
+          description:
+            "A clear and explainable method for predicting categories.",
+          detail:
+            "Useful for results such as Yes or No, pass or fail, or different classes.",
+        },
+
+        linear_regression: {
+          title: "Linear Regression",
+          description: "A simple method for predicting numeric values.",
+          detail:
+            "Useful for continuous values such as price, length, weight, or temperature.",
+        },
+
+        decision_tree: {
+          title: "Decision Tree",
+          description:
+            "Makes predictions through a sequence of simple decisions.",
+          detail:
+            "Useful when you want a model that behaves like an understandable flowchart.",
+        },
+
+        random_forest: {
+          title: "Random Forest",
+          description:
+            "Combines several decision trees for more stable predictions.",
+          detail:
+            "A strong general-purpose method that often performs well without much adjustment.",
+        },
+
+        knn: {
+          title: "K-Nearest Neighbours",
+          description: "Predicts by looking at the most similar examples.",
+          detail:
+            "Useful when nearby data points tend to have similar outcomes.",
+        },
+
+        svm: {
+          title: "Support Vector Machine",
+          description: "Finds a strong boundary between different groups.",
+          detail:
+            "Often effective for small and medium datasets after numeric values are scaled.",
+        },
+      };
+
+      const modelSelect = document.getElementById(
+        "{{ form.model_name.id_for_label }}",
+      );
+
+      const modelTitle = document.getElementById("model-title");
+
+      const modelDescription = document.getElementById("model-description");
+
+      const modelDetail = document.getElementById("model-detail");
+
+      function updateModelInformation() {
+        if (!modelSelect) {
+          return;
+        }
+
+        const selectedValue = modelSelect.value;
+
+        const selectedModel = modelDescriptions[selectedValue];
+
+        if (!selectedModel) {
+          modelTitle.textContent = "Selected learning method";
+
+          modelDescription.textContent =
+            "This method will learn patterns from your dataset.";
+
+          modelDetail.textContent =
+            "Train the model and compare its result with another method.";
+
+          return;
+        }
+
+        modelTitle.textContent = selectedModel.title;
+
+        modelDescription.textContent = selectedModel.description;
+
+        modelDetail.textContent = selectedModel.detail;
+      }
+
+      if (modelSelect) {
+        modelSelect.addEventListener("change", updateModelInformation);
+
+        updateModelInformation();
+      }
+
+      const testRange = document.getElementById(
+        "{{ form.test_size.id_for_label }}",
+      );
+
+      const trainValue = document.getElementById("train-value");
+
+      const testValue = document.getElementById("test-value");
+
+      const successNote = document.querySelector(".success-note");
+
+      function updateSplit() {
+        if (!testRange || !trainValue || !testValue) {
+          return;
+        }
+
+        const rawValue = Number(testRange.value);
+
+        let testingPercentage = rawValue;
+
+        if (rawValue > 0 && rawValue <= 1) {
+          testingPercentage = Math.round(rawValue * 100);
+        }
+
+        const trainingPercentage = 100 - testingPercentage;
+
+        trainValue.textContent = trainingPercentage + "%";
+
+        testValue.textContent = testingPercentage + "%";
+
+        if (!successNote) {
+          return;
+        }
+
+        if (testingPercentage === 20) {
+          successNote.textContent =
+            "✓ An 80/20 split is a strong default for many small datasets.";
+        } else if (testingPercentage < 20) {
+          successNote.textContent =
+            "ⓘ More data is used for learning, but fewer examples are used for evaluation.";
+        } else {
+          successNote.textContent =
+            "ⓘ More data is used for evaluation, but less data is available for learning.";
+        }
+      }
+
+      if (testRange) {
+        testRange.addEventListener("input", updateSplit);
+
+        updateSplit();
+      }
+
+      const trainingForm = document.getElementById("training-form");
+
+      if (trainingForm) {
+        trainingForm.addEventListener("submit", function () {
+          const submitButton = trainingForm.querySelector(
+            'button[type="submit"]',
+          );
+
+          if (!submitButton) {
+            return;
+          }
+
+          submitButton.disabled = true;
+
+          submitButton.innerHTML = "Training your model…";
+        });
+      }
+    </script>
+  </body>
+</html> -->
+
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Train Model · AutoML Guide</title>
+
+    <link
+      rel="stylesheet"
+      href="{% static 'project1/style.css' %}?v=20260718-50"
+    />
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="{% url 'project1:index' %}">
+          <span class="brand-mark">AI</span>
+
+          <span>
+            <strong>AutoML Guide</strong>
+            <small>Human-friendly machine learning</small>
+          </span>
+        </a>
+
+        <div class="topbar-actions">
+          <a class="main-home-button" href="/" aria-label="Go to main home page">
+            ← Main Home
+          </a>
+          <a class="text-button danger-link" href="{% url 'project1:reset' %}">
+            Start with another file
+          </a>
+        </div>
+      </header>
+
+      <main class="page">
+        {% include "project1/stepper.html" %} {% if messages %}
+        <div class="message-stack">
+          {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <section class="page-heading">
+          <div>
+            <span class="eyebrow"> Step 3 of 3 · Build your model </span>
+
+            <h1>Choose what you want to predict.</h1>
+
+            <p>
+              Recommended settings are already selected. You can train
+              immediately or adjust the options after reading their
+              explanations.
+            </p>
+          </div>
+
+          <div class="file-chip">
+            <span>CSV</span>
+
+            <div>
+              <strong>{{ dataset_name }}</strong>
+              <small>Ready for training</small>
+            </div>
+          </div>
+        </section>
+
+        <div class="training-layout">
+          <section class="content-card setup-card">
+            <div class="section-heading">
+              <div>
+                <span class="section-icon">⚙</span>
+
+                <div>
+                  <h2>Model setup</h2>
+                  <p>Follow the three choices below.</p>
+                </div>
+              </div>
+
+              <span class="recommended-badge"> Recommended defaults </span>
+            </div>
+
+            <form method="post" class="training-form" id="training-form">
+              {% csrf_token %}
+
+              <div class="form-section">
+                <div class="field-heading">
+                  <span class="choice-number">1</span>
+
+                  <div>
+                    <label for="{{ form.target_column.id_for_label }}">
+                      {{ form.target_column.label }}
+                    </label>
+
+                    <p>
+                      Select the column containing the result the model should
+                      learn, such as flower type, customer decision, or house
+                      price.
+                    </p>
+                  </div>
+                </div>
+
+                {{ form.target_column }} {% if form.target_column.errors %}
+                <div class="field-error">
+                  {{ form.target_column.errors|striptags }}
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="form-section">
+                <div class="field-heading">
+                  <span class="choice-number">2</span>
+
+                  <div>
+                    <label for="{{ form.model_name.id_for_label }}">
+                      {{ form.model_name.label }}
+                    </label>
+
+                    <p id="model-description">
+                      Select the learning method used to make predictions.
+                    </p>
+                  </div>
+                </div>
+
+                {{ form.model_name }} {% if form.model_name.errors %}
+                <div class="field-error">
+                  {{ form.model_name.errors|striptags }}
+                </div>
+                {% endif %}
+
+                <div class="model-guide" id="model-guide">
+                  <span class="guide-icon">i</span>
+
+                  <div>
+                    <strong id="model-title"> Recommended model </strong>
+
+                    <p id="model-detail">
+                      Start with the selected default, then compare another
+                      model after reviewing your first result.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="field-heading">
+                  <span class="choice-number">3</span>
+
+                  <div>
+                    <label for="{{ form.test_size.id_for_label }}">
+                      Choose how much data to test
+                    </label>
+
+                    <p>
+                      The model learns from one part of the data and is checked
+                      on data it has not seen.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="split-summary">
+                  <span>
+                    Learning data:
+                    <strong id="train-value">80%</strong>
+                  </span>
+
+                  <span>
+                    Testing data:
+                    <strong id="test-value">20%</strong>
+                  </span>
+                </div>
+
+                {{ form.test_size }} {% if form.test_size.errors %}
+                <div class="field-error">
+                  {{ form.test_size.errors|striptags }}
+                </div>
+                {% endif %}
+
+                <div class="range-labels">
+                  <span>More training</span>
+                  <span>More testing</span>
+                </div>
+
+                <div class="success-note">
+                  An 80/20 split is a strong default for many small datasets.
+                </div>
+              </div>
+
+              <details class="advanced-options">
+                <summary>
+                  <span>
+                    <strong>Advanced options</strong>
+
+                    <small> Optional settings for experienced users </small>
+                  </span>
+
+                  <span>⌄</span>
+                </summary>
+
+                <div class="advanced-content">
+                  <label class="toggle-row">
+                    <span>
+                      <strong>Scale numeric values</strong>
+
+                      <small>
+                        Helps models compare columns with different measurement
+                        ranges.
+                      </small>
+                    </span>
+
+                    {{ form.normalize }}
+
+                    <span class="toggle-ui"></span>
+                  </label>
+
+                  {% if form.normalize.errors %}
+                  <div class="field-error">
+                    {{ form.normalize.errors|striptags }}
+                  </div>
+                  {% endif %}
+
+                  <label class="toggle-row">
+                    <span>
+                      <strong> Allow a baseline value </strong>
+
+                      <small>
+                        Lets linear models learn a starting point instead of
+                        forcing zero.
+                      </small>
+                    </span>
+
+                    {{ form.fit_intercept }}
+
+                    <span class="toggle-ui"></span>
+                  </label>
+
+                  {% if form.fit_intercept.errors %}
+                  <div class="field-error">
+                    {{ form.fit_intercept.errors|striptags }}
+                  </div>
+                  {% endif %}
+                </div>
+              </details>
+
+              <button
+                class="primary-button full-width"
+                id="train-button"
+                type="submit"
+              >
+                <span id="train-button-text"> Train and evaluate model </span>
+
+                <span aria-hidden="true">→</span>
+              </button>
+            </form>
+          </section>
+
+          <section class="content-card results-card">
+            <div class="section-heading">
+              <div>
+                <span class="section-icon">✓</span>
+
+                <div>
+                  <h2>Results explained</h2>
+
+                  <p>
+                    The important numbers are translated into plain language.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {% if result %}
+
+            <div class="result-hero">
+              <div class="score-ring">
+                <span> {{ result.primary_metric_value }} </span>
+
+                <small>score</small>
+              </div>
+
+              <div>
+                <span class="result-status"> Training completed </span>
+
+                <h3>{{ result.model_label }}</h3>
+
+                <p>{{ result.interpretation }}</p>
+              </div>
+            </div>
+
+            <div class="plain-language-box">
+              <span>What this means</span>
+
+              <p>
+                This score was calculated using testing data that the model did
+                not use while learning. Compare it with another model before
+                deciding which result is most reliable.
+              </p>
+            </div>
+
+            <div class="metric-grid">
+              <article>
+                <span> {{ result.primary_metric_name }} </span>
+
+                <strong> {{ result.primary_metric_value }} </strong>
+              </article>
+
+              {% for name, value in result.secondary_metrics.items %}
+              <article>
+                <span>{{ name }}</span>
+                <strong>{{ value }}</strong>
+              </article>
+              {% endfor %}
+            </div>
+
+            {% if result.predictions_preview %}
+
+            <div class="result-section">
+              <h3>Example predictions</h3>
+
+              <p>
+                These examples come from the testing portion of your dataset.
+              </p>
+
+              <div class="prediction-list">
+                {% for prediction in result.predictions_preview %}
+
+                <div>
+                  <span>
+                    Actual:
+                    <strong> {{ prediction.actual }} </strong>
+                  </span>
+
+                  <span>
+                    Predicted:
+                    <strong> {{ prediction.predicted }} </strong>
+                  </span>
+                </div>
+
+                {% endfor %}
+              </div>
+            </div>
+
+            {% endif %}
+
+            <div class="next-step-card">
+              <strong>Compare another setup</strong>
+
+              <p>
+                Try another model or testing percentage to check whether the
+                results remain consistent.
+              </p>
+            </div>
+
+            {% else %}
+
+            <div class="empty-results">
+              <span class="empty-illustration">◎</span>
+
+              <h3>Your results will appear here</h3>
+
+              <p>
+                Select the target column, review the recommended settings, and
+                click
+                <strong>Train and evaluate model</strong>.
+              </p>
+
+              <div class="empty-checklist">
+                <span>✓ Automatic problem detection</span>
+                <span>✓ Missing-value handling</span>
+                <span>✓ Clear score explanation</span>
+              </div>
+            </div>
+
+            {% endif %}
+          </section>
+        </div>
+
+        <div class="bottom-nav">
+          <a class="secondary-button" href="{% url 'project1:visualize' %}">
+            ← Back to data review
+          </a>
+        </div>
+      </main>
+    </div>
+
+    <!-- Full-screen training popup -->
+    <div id="training-loader" class="training-loader" aria-hidden="true">
+      <div
+        class="training-loader-card"
+        role="status"
+        aria-live="polite"
+        aria-label="Model training in progress"
+      >
+        <div class="training-spinner"></div>
+
+        <h2>Training your model</h2>
+
+        <p id="training-status-message">Preparing your dataset...</p>
+
+        <div class="training-progress-bar">
+          <div class="training-progress-value"></div>
+        </div>
+
+        <div class="training-loader-steps">
+          <div class="loader-step">
+            <span class="loader-step-icon">1</span>
+
+            <span>
+              <strong>Preparing data</strong>
+              <small>Checking columns and missing values</small>
+            </span>
+          </div>
+
+          <div class="loader-step">
+            <span class="loader-step-icon">2</span>
+
+            <span>
+              <strong>Training model</strong>
+              <small>Learning patterns from your dataset</small>
+            </span>
+          </div>
+
+          <div class="loader-step">
+            <span class="loader-step-icon">3</span>
+
+            <span>
+              <strong>Calculating results</strong>
+              <small>Evaluating predictions on testing data</small>
+            </span>
+          </div>
+        </div>
+
+        <small class="loader-footer">
+          Larger datasets may take longer. Please keep this page open.
+        </small>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const trainingForm = document.getElementById("training-form");
+
+        const trainingLoader = document.getElementById("training-loader");
+
+        const trainButton = document.getElementById("train-button");
+
+        const trainButtonText = document.getElementById("train-button-text");
+
+        const statusMessage = document.getElementById(
+          "training-status-message",
+        );
+
+        const modelSelect = document.getElementById(
+          "{{ form.model_name.id_for_label }}",
+        );
+
+        const modelTitle = document.getElementById("model-title");
+
+        const modelDetail = document.getElementById("model-detail");
+
+        const modelDescription = document.getElementById("model-description");
+
+        const testRange = document.getElementById(
+          "{{ form.test_size.id_for_label }}",
+        );
+
+        const trainValue = document.getElementById("train-value");
+
+        const testValue = document.getElementById("test-value");
+
+        const splitMessage = document.getElementById("split-message");
+
+        let statusTimer = null;
+
+        /* ==========================================
+       Model explanation
+       ========================================== */
+
+        const modelInformation = {
+          logistic_regression: {
+            title: "Logistic Regression",
+            detail:
+              "A clear and reliable starting model for classification. " +
+              "It works well when the relationship between the input " +
+              "columns and the result is relatively simple.",
+            description:
+              "Recommended when you want a simple and explainable " +
+              "classification model.",
+          },
+
+          linear_regression: {
+            title: "Linear Regression",
+            detail:
+              "A simple model for predicting numerical values such as " +
+              "prices, scores, temperatures, or sales.",
+            description:
+              "Recommended for numerical prediction when relationships " +
+              "are approximately linear.",
+          },
+
+          decision_tree: {
+            title: "Decision Tree",
+            detail:
+              "Creates understandable decision rules. It can model " +
+              "non-linear relationships and works with many different " +
+              "types of datasets.",
+            description:
+              "A good choice when clear, rule-based decisions are useful.",
+          },
+
+          random_forest: {
+            title: "Random Forest",
+            detail:
+              "Combines several decision trees to produce more stable " +
+              "and accurate predictions. It often performs well without " +
+              "requiring extensive model tuning.",
+            description: "Recommended for strong general-purpose performance.",
+          },
+
+          svm: {
+            title: "Support Vector Machine",
+            detail:
+              "Finds a strong boundary between different classes. It can " +
+              "perform well on small and medium-sized datasets, but may " +
+              "take longer on large datasets.",
+            description:
+              "Useful for classification datasets with clear class boundaries.",
+          },
+
+          svc: {
+            title: "Support Vector Classifier",
+            detail:
+              "Finds a separation boundary between categories. It often " +
+              "works well for small or medium-sized datasets.",
+            description:
+              "Useful for classification when the dataset is not extremely large.",
+          },
+
+          knn: {
+            title: "K-Nearest Neighbors",
+            detail:
+              "Makes predictions by comparing each new example with " +
+              "similar examples in the training data.",
+            description:
+              "Useful when similar records are expected to have similar outcomes.",
+          },
+
+          naive_bayes: {
+            title: "Naive Bayes",
+            detail:
+              "A fast classification method that works especially well " +
+              "with text, frequency, or probability-based data.",
+            description:
+              "A fast model suitable for text and probability-based problems.",
+          },
+
+          gradient_boosting: {
+            title: "Gradient Boosting",
+            detail:
+              "Builds models gradually, with each new model correcting " +
+              "errors made by the previous models. It can provide strong " +
+              "accuracy but may require more training time.",
+            description:
+              "Useful when predictive performance is more important than simplicity.",
+          },
         };
 
-        function updateHyperparams(modelKey) {
-            const container = document.getElementById('hyperparams-container');
-            container.innerHTML = '';
-
-            const params = HYPERPARAMS[modelKey] || [];
-
-            params.forEach(function(param) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'form-group split-section';
-
-                if (param.type === 'slider') {
-                    const labelRow = document.createElement('div');
-                    labelRow.className = 'split-labels-row';
-
-                    const labelLeft = document.createElement('span');
-                    labelLeft.className = 'label-text';
-                    labelLeft.textContent = param.label + ': ';
-
-                    const valueStrong = document.createElement('strong');
-                    valueStrong.id = 'hp_label_' + param.name;
-                    valueStrong.textContent = param.default;
-
-                    const hintSpan = document.createElement('span');
-                    hintSpan.textContent = ' ?';
-                    hintSpan.title = param.hint;
-                    hintSpan.style.cssText = 'cursor:help; font-weight:700; opacity:0.5;';
-
-                    labelLeft.appendChild(valueStrong);
-                    labelLeft.appendChild(hintSpan);
-                    labelRow.appendChild(labelLeft);
-                    wrapper.appendChild(labelRow);
-
-                    const slider = document.createElement('input');
-                    slider.type      = 'range';
-                    slider.id        = 'hp_' + param.name;
-                    slider.name      = 'hp_' + param.name;
-                    slider.className = 'slider';
-                    slider.min       = param.min;
-                    slider.max       = param.max;
-                    slider.step      = param.step;
-                    slider.value     = param.default;
-                    slider.oninput   = function() {
-                        document.getElementById('hp_label_' + param.name).textContent = this.value;
-                    };
-                    slider.style.marginBottom = '8px';
-                    wrapper.appendChild(slider);
-
-                } else {
-                    const labelRow = document.createElement('div');
-                    labelRow.className = 'split-labels-row';
-                    labelRow.style.marginTop = '10px'; 
-
-                    const lbl = document.createElement('span');
-                    lbl.className = 'label-text';
-                    lbl.textContent = param.label;
-
-                    const hintSpan = document.createElement('span');
-                    hintSpan.textContent = '?';
-                    hintSpan.title = param.hint;
-                    hintSpan.style.cssText = 'cursor:help; font-weight:700; opacity:0.5;';
-
-                    labelRow.appendChild(lbl);
-                    labelRow.appendChild(hintSpan);
-                    wrapper.appendChild(labelRow);
-
-                    const sw = document.createElement('div');
-                    sw.className = 'select-wrapper';
-
-                    const select = document.createElement('select');
-                    select.id        = 'hp_' + param.name;
-                    select.name      = 'hp_' + param.name;
-                    select.className = 'dropdown';
-
-                    param.options.forEach(function(opt) {
-                        const o = document.createElement('option');
-                        o.value = opt.value;
-                        o.textContent = opt.text;
-                        if (opt.value === String(param.default)) o.selected = true;
-                        select.appendChild(o);
-                    });
-
-                    const arrow = document.createElement('span');
-                    arrow.className = 'custom-arrow';
-                    arrow.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
-
-                    sw.appendChild(select);
-                    sw.appendChild(arrow);
-                    wrapper.appendChild(sw);
-                }
-
-                container.appendChild(wrapper);
-            });
+        function normalizeModelName(value) {
+          return String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
         }
 
-        function updateSplitUI(val) {
-            const trainPercent = parseInt(val);
-            const testPercent = 100 - trainPercent;
-            const feedback = document.getElementById('feedback-note');
-            
-            document.getElementById('trainLabel').innerText = trainPercent + '%';
-            document.getElementById('testLabel').innerText = testPercent + '%';
+        function getSelectedModelInformation() {
+          if (!modelSelect) {
+            return null;
+          }
 
-            if (trainPercent > 90) {
-                feedback.innerText = "⚠️ Caution: Risk of Overfitting. The model may memorize noise rather than learn patterns.";
-                feedback.className = "feedback-box error";
-            } else if (trainPercent < 60) {
-                feedback.innerText = "⚠️ Caution: Risk of Underfitting. Not enough data provided for effective learning.";
-                feedback.className = "feedback-box error";
-            } else {
-                feedback.innerText = "✅ Good choice. Healthy balance for training and validation.";
-                feedback.className = "feedback-box success";
+          const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+
+          const modelValue = normalizeModelName(modelSelect.value);
+
+          const modelLabel = normalizeModelName(
+            selectedOption ? selectedOption.textContent : "",
+          );
+
+          return (
+            modelInformation[modelValue] || modelInformation[modelLabel] || null
+          );
+        }
+
+        function updateModelExplanation() {
+          if (!modelSelect || !modelTitle || !modelDetail) {
+            return;
+          }
+
+          const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+
+          const information = getSelectedModelInformation();
+
+          if (information) {
+            modelTitle.textContent = information.title;
+
+            modelDetail.textContent = information.detail;
+
+            if (modelDescription) {
+              modelDescription.textContent = information.description;
             }
+
+            return;
+          }
+
+          const selectedLabel = selectedOption
+            ? selectedOption.textContent.trim()
+            : "Selected model";
+
+          modelTitle.textContent = selectedLabel;
+
+          modelDetail.textContent =
+            "This model will learn patterns from your selected input " +
+            "columns and use them to predict the target column.";
+
+          if (modelDescription) {
+            modelDescription.textContent =
+              "Review the explanation below before training.";
+          }
         }
 
-        // Init on page load
-        (function() {
-            const sel = document.getElementById('model-select');
-            updateHyperparams(sel.value);
-        })();
+        /* ==========================================
+       Training/testing split explanation
+       ========================================== */
+
+        function getTestingPercentage() {
+          if (!testRange) {
+            return 20;
+          }
+
+          let value = Number(testRange.value);
+
+          if (Number.isNaN(value)) {
+            return 20;
+          }
+
+          /*
+           * Supports both:
+           * 0.2 = 20%
+           * 20  = 20%
+           */
+          if (value > 0 && value <= 1) {
+            value = value * 100;
+          }
+
+          return Math.round(value);
+        }
+
+        function updateSplit() {
+          if (!trainValue || !testValue) {
+            return;
+          }
+
+          const testingPercentage = getTestingPercentage();
+
+          const trainingPercentage = 100 - testingPercentage;
+
+          trainValue.textContent = trainingPercentage + "%";
+
+          testValue.textContent = testingPercentage + "%";
+
+          if (!splitMessage) {
+            return;
+          }
+
+          if (testingPercentage < 20) {
+            splitMessage.textContent =
+              "More data will be used for learning, but the model will " +
+              "be evaluated on a smaller testing sample.";
+          } else if (testingPercentage <= 30) {
+            splitMessage.textContent =
+              "This is a balanced split. Most data is used for learning " +
+              "while enough data remains for a useful evaluation.";
+          } else {
+            splitMessage.textContent =
+              "More data will be reserved for testing, which provides a " +
+              "stronger evaluation but leaves less data for learning.";
+          }
+        }
+
+        /* ==========================================
+       Full-screen training popup
+       ========================================== */
+
+        function showTrainingLoader() {
+          if (!trainingLoader) {
+            return;
+          }
+
+          trainingLoader.classList.add("is-visible");
+
+          trainingLoader.setAttribute("aria-hidden", "false");
+
+          document.body.classList.add("training-in-progress");
+
+          if (trainButton) {
+            trainButton.disabled = true;
+          }
+
+          if (trainButtonText) {
+            trainButtonText.textContent = "Training in progress...";
+          }
+
+          const messages = [
+            "Preparing your dataset...",
+            "Checking columns and missing values...",
+            "Training the selected model...",
+            "Testing the model on unseen data...",
+            "Calculating performance scores...",
+            "Preparing your results...",
+          ];
+
+          let messageIndex = 0;
+
+          statusTimer = window.setInterval(function () {
+            messageIndex = (messageIndex + 1) % messages.length;
+
+            if (statusMessage) {
+              statusMessage.textContent = messages[messageIndex];
+            }
+          }, 2200);
+        }
+
+        function hideTrainingLoader() {
+          if (statusTimer) {
+            window.clearInterval(statusTimer);
+            statusTimer = null;
+          }
+
+          if (trainingLoader) {
+            trainingLoader.classList.remove("is-visible");
+
+            trainingLoader.setAttribute("aria-hidden", "true");
+          }
+
+          document.body.classList.remove("training-in-progress");
+
+          if (trainButton) {
+            trainButton.disabled = false;
+          }
+
+          if (trainButtonText) {
+            trainButtonText.textContent = "Train and evaluate model";
+          }
+
+          if (statusMessage) {
+            statusMessage.textContent = "Preparing your dataset...";
+          }
+        }
+
+        /* ==========================================
+       Event listeners
+       ========================================== */
+
+        if (modelSelect) {
+          modelSelect.addEventListener("change", updateModelExplanation);
+
+          updateModelExplanation();
+        }
+
+        if (testRange) {
+          testRange.addEventListener("input", updateSplit);
+
+          testRange.addEventListener("change", updateSplit);
+
+          updateSplit();
+        }
+
+        if (trainingForm) {
+          trainingForm.addEventListener("submit", function () {
+            if (!trainingForm.checkValidity()) {
+              return;
+            }
+
+            showTrainingLoader();
+          });
+        }
+
+        window.addEventListener("pageshow", hideTrainingLoader);
+      });
     </script>
-</body>
+  </body>
 </html>

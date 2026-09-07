@@ -1,0 +1,22 @@
+PROJECT 2 DJANGO INTEGRATION
+============================
+
+1. Copy this entire project2 folder into the same directory as manage.py.
+
+2. Keep this line in pbl/urls.py:
+   path("project2/", include("project2.urls")),
+
+3. Make sure INSTALLED_APPS in pbl/settings.py contains:
+   "project2",
+
+4. Your home project link should use:
+   {"name": "Project 2 : Explainability", "url_name": "project2:project"},
+
+5. Install packages if needed:
+   pip install -r project2/requirements.txt
+
+6. Run:
+   python manage.py runserver
+
+7. Open:
+   http://127.0.0.1:8000/project2/

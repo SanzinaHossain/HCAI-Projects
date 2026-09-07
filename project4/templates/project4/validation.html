@@ -1,0 +1,68 @@
+{% extends 'project4/base.html' %} {% block title %}Final Preference Check ·
+Movie Preference Study{% endblock %} {% block content %}
+<section class="panel">
+  <div class="page-nav">
+    <a class="back-home" href="{% url 'project4:landing' %}">← Project 4 Home</a
+    ><span>Step 4 of 5 · Final check {{ index }} of {{ total }}</span>
+  </div>
+  <div class="progress-row">
+    <div class="progress">
+      Held-out preference check · {{ index }} / {{ total }}
+    </div>
+    <div class="progress-track" aria-hidden="true">
+      <span style="width: {{ progress_pct }}%"></span>
+    </div>
+  </div>
+  <span class="pill">Fair model check</span>
+  <h2>Which movie would you rather watch?</h2>
+  <p class="lead compact">
+    Choose exactly as before. These final choices are kept separate from both
+    training methods, so they can be used as a fair test.
+  </p>
+  {% if error %}
+  <div class="note error">{{ error }}</div>
+  {% endif %}
+
+  <details class="info-toggle" open>
+    <summary>
+      <span class="info-icon">i</span> Why were these movies “held out”?
+    </summary>
+    <div class="toggle-content">
+      <p>
+        If a model were tested using the same answers it learned from, the
+        result could look better than it really is. These choices are new to
+        both learned models. Each model predicts them, and its prediction is
+        compared with what you actually chose.
+      </p>
+    </div>
+  </details>
+  {% include 'project4/_movie_field_guide.html' %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="movie-grid pair">
+      {% for m in movies %}
+      <button
+        class="movie"
+        type="submit"
+        name="winner"
+        value="{{ m.id }}"
+        aria-label="Choose {{ m.title }}"
+      >
+        <div class="poster" aria-hidden="true">{{ m.title|slice:':1' }}</div>
+        <h3>{{ m.title }}</h3>
+        <p>{{ m.year }} · {{ m.genres }}</p>
+        <div class="movie-meta">
+          <span><b>Duration:</b> {{ m.duration }} min</span>
+          <span><b>Rating:</b> {{ m.rating }}</span>
+          <span><b>IMDb:</b> {{ m.imdb_score }}</span>
+          <span><b>Language:</b> {{ m.language }}</span>
+          <span><b>Director:</b> {{ m.director }}</span>
+        </div>
+        <strong class="choose-label">Choose this movie</strong>
+      </button>
+      {% endfor %}
+    </div>
+  </form>
+</section>
+{% endblock %}

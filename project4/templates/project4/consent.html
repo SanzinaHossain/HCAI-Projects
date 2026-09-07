@@ -1,0 +1,40 @@
+{% extends 'project4/base.html' %}
+{% block title %}Study Information · Movie Preference Study{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <div class="page-nav"><a class="back-home" href="{% url 'project4:landing' %}">← Project 4 Home</a><span>Step 1 of 5 · Study information</span></div>
+  <span class="pill">Before you begin</span>
+  <h2>Study information and consent</h2>
+  <p>This is a course demonstration of a proposed user study. You will make movie preference choices. There are no right or wrong answers: choose according to what <b>you</b> would rather watch.</p>
+
+  <div class="study-facts">
+    <div><b>What you will do</b><span>Try both preference methods, answer short feedback questions, then complete final comparison choices.</span></div>
+    <div><b>Data in this demo</b><span>Your progress and answers are kept in the temporary study session. This demonstration does not claim to be a completed real study.</span></div>
+    <div><b>Voluntary participation</b><span>You may stop at any time by leaving the page. You can also use “Main Home” and start a fresh session later.</span></div>
+  </div>
+
+  <details class="info-toggle" open>
+    <summary><span class="info-icon">i</span> What will happen after I click Continue?</summary>
+    <div class="toggle-content">
+      <ol class="friendly-steps">
+        <li>You will complete the first randomly selected method.</li>
+        <li>You will rate how easy it felt and how confident you are in your answers.</li>
+        <li>You will complete the other method and rate it too.</li>
+        <li>You will make 8 final two-movie choices that were kept separate from training.</li>
+        <li>You will see a simple explanation of how well each learned model agreed with those final choices.</li>
+      </ol>
+    </div>
+  </details>
+
+  <details class="info-toggle">
+    <summary><span class="info-icon">i</span> Why is the order random?</summary>
+    <div class="toggle-content"><p>If everyone always did the same method first, practice or tiredness could unfairly help one method. Randomly using pairwise-first or ranking-first reduces this order effect.</p></div>
+  </details>
+
+  <form method="post">
+    {% csrf_token %}
+    <label class="check"><input type="checkbox" required> I have read the study information, I understand this is a course demonstration, and I want to continue.</label>
+    <button class="btn" type="submit">Continue to the study →</button>
+  </form>
+</section>
+{% endblock %}
