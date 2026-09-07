@@ -1,10 +1,29 @@
 from django.urls import path
+
 from . import views
 
-app_name = 'project3'
+
+app_name = "project3"
 
 
 urlpatterns = [
-    path("", views.index, name="index"),
-    path("simulated/", views.simulated_expert_view, name="simulated"),
+
+    path(
+        "",
+        views.index,
+        name="index"
+    ),
+
+    path(
+        "comparison/",
+        views.comparison,
+        name="comparison"
+    ),
+
+    path(
+        "simulated/",
+        views.simulated_expert_view,
+        name="simulated"
+    ),
+
 ]
