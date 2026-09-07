@@ -1,21 +1,355 @@
-{% extends "base.html" %}
+{% load static %}
 
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
 
-<h1>AG News Baseline Classifier</h1>
+<head>
 
-<p><strong>Training Samples:</strong> {{ train_samples }}</p>
-<p><strong>Testing Samples:</strong> {{ test_samples }}</p>
+    <meta charset="UTF-8">
 
-<h2>Baseline Model</h2>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<ul>
-    <li>Vectorizer : TF-IDF</li>
-    <li>Classifier : Logistic Regression</li>
-</ul>
+    <title>Active Learning</title>
 
-<h2>Test Accuracy</h2>
+    <link
+        rel="stylesheet"
+        href="{% static 'project3/style.css' %}"
+    >
 
-<h1>{{ accuracy }}%</h1>
+</head>
 
-{% endblock %}
+<body>
+
+<div class="page">
+
+    <!-- HEADER -->
+
+    <header class="header">
+
+        <div>
+
+            <h1>Active Learning</h1>
+
+            <p class="subtitle">
+                Classifier and expert performance on AG News
+            </p>
+
+        </div>
+
+        <a
+            href="/"
+            class="home-button"
+        >
+            Home
+        </a>
+
+    </header>
+
+
+    <!-- OVERALL PERFORMANCE -->
+
+    <section class="section">
+
+        <h2>Overall Performance</h2>
+
+        <p class="section-description">
+            Accuracy across the complete test dataset
+        </p>
+
+        <div class="overall-grid">
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Classifier
+                </div>
+
+                <div class="accuracy">
+                    {{ classifier_accuracy }}%
+                </div>
+
+                <div class="card-description">
+                    Overall test accuracy
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Simulated Expert
+                </div>
+
+                <div class="accuracy">
+                    {{ expert_accuracy }}%
+                </div>
+
+                <div class="card-description">
+                    Overall test accuracy
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- CATEGORY ACCURACY -->
+
+    <section class="section">
+
+        <h2>Category Performance</h2>
+
+        <p class="section-description">
+            Accuracy for each AG News category
+        </p>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Category</th>
+                        <th>Classifier</th>
+                        <th>Expert</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in category_data %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ item.name }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ item.classifier }}%
+                        </td>
+
+                        <td>
+                            {{ item.expert }}%
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- SPECIFIC NEWS -->
+
+    <section class="section">
+
+        <h2>Specific News</h2>
+
+        <p class="section-description">
+            Select a news article to compare the classifier and expert predictions
+        </p>
+
+
+        <form
+            method="get"
+            class="news-form"
+        >
+
+            <select
+                name="news"
+                class="news-select"
+            >
+
+                {% for news in news_options %}
+
+                    <option
+                        value="{{ news.index }}"
+                        {% if selected_news == news.index %}
+                            selected
+                        {% endif %}
+                    >
+
+                        {{ news.index }} — {{ news.text }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+
+            <button
+                type="submit"
+                class="show-button"
+            >
+                Show News
+            </button>
+
+        </form>
+
+
+        <!-- NEWS ARTICLE -->
+
+        <div class="news-article">
+
+            <div class="news-label">
+                Selected Article
+            </div>
+
+            <div class="news-text">
+                {{ news_result.text }}
+            </div>
+
+        </div>
+
+
+        <!-- PREDICTIONS -->
+
+        <div class="prediction-grid">
+
+            <!-- TRUE CATEGORY -->
+
+            <div class="prediction-card">
+
+                <span>
+                    True Category
+                </span>
+
+                <strong>
+                    {{ news_result.true_category }}
+                </strong>
+
+            </div>
+
+
+            <!-- CLASSIFIER -->
+
+            <div class="prediction-card">
+
+                <span>
+                    Classifier Prediction
+                </span>
+
+                <strong>
+                    {{ news_result.classifier }}
+                </strong>
+
+                {% if news_result.classifier_correct %}
+
+                    <div class="result correct">
+                        ✓ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="result incorrect">
+                        ✗ Incorrect
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- EXPERT -->
+
+            <div class="prediction-card">
+
+                <span>
+                    Expert Prediction
+                </span>
+
+                <strong>
+                    {{ news_result.expert }}
+                </strong>
+
+                {% if news_result.expert_correct %}
+
+                    <div class="result correct">
+                        ✓ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="result incorrect">
+                        ✗ Incorrect
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- DATASET -->
+
+    <section class="section dataset-section">
+
+        <div>
+
+            <h2>Evaluation Dataset</h2>
+
+            <p>
+                AG News
+            </p>
+
+        </div>
+
+
+        <div class="dataset-stats">
+
+            <div>
+
+                <span>
+                    Training samples
+                </span>
+
+                <strong>
+                    {{ train_samples }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Test samples
+                </span>
+
+                <strong>
+                    {{ test_samples }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+
+</html>

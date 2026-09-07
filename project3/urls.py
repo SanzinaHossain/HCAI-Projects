@@ -8,16 +8,11 @@ app_name = "project3"
 
 urlpatterns = [
 
+    # Main Active Learning page
     path(
         "",
         views.index,
         name="index"
-    ),
-
-    path(
-        "comparison/",
-        views.comparison,
-        name="comparison"
     ),
 
     path(
