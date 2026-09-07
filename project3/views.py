@@ -283,6 +283,20 @@ def index(request):
 
         "expert_correct":
             expert_prediction == true_label,
+
+        # Task 3: what the learning-to-defer system actually decided for
+        # this specific article. _defer_decision and _final_pred are
+        # defined further down in this file (Task 3 section), but that's
+        # fine -- index() only reads them when a request comes in, by
+        # which point the whole module has already finished loading.
+        "deferred":
+            bool(_defer_decision[news_index]),
+
+        "final_prediction":
+            LABEL_NAMES[int(_final_pred[news_index])],
+
+        "final_correct":
+            int(_final_pred[news_index]) == true_label,
     }
 
 
@@ -330,6 +344,19 @@ def index(request):
 
         "test_samples":
             _test_samples,
+
+        # Task 3: aggregate learning-to-defer performance 
+        "l2d_system_accuracy":
+            round(_l2d_system_accuracy * 100, 2),
+
+        "l2d_oracle_upper_bound":
+            round(_l2d_oracle_upper_bound * 100, 2),
+
+        "l2d_deferral_rate":
+            round(_l2d_deferral_rate * 100, 2),
+
+        "l2d_per_class":
+            _l2d_per_class,
     }
 
 
@@ -340,9 +367,7 @@ def index(request):
     )
 
 
-# ============================================================
-# OPTIONAL SIMULATED EXPERT PAGE
-# ============================================================
+
 
 def simulated_expert_view(request):
 
@@ -366,38 +391,37 @@ def simulated_expert_view(request):
 # Task 3: learning-to-defer
 REJECTOR_PATH = os.path.join(os.path.dirname(__file__), "rejector_model.joblib")
 THRESHOLDS_PATH = os.path.join(os.path.dirname(__file__), "defer_thresholds.pkl")
-
+ 
 _rejector = joblib.load(REJECTOR_PATH)
 with open(THRESHOLDS_PATH, "rb") as f:
     _per_class_thresh = pickle.load(f)
+ 
 
-# Run the full L2D system once at startup and cache the results, same
-# pattern as the Task 2 expert simulation above -- avoids recomputing
-# on every page view.
-_test_proba = _pipeline.predict_proba(_test_texts)
+_test_proba = _model.predict_proba(_test_texts)
 _clf_pred_test = _test_proba.argmax(axis=1)
 _sorted_proba = np.sort(_test_proba, axis=1)
 _test_confidence = _sorted_proba[:, -1]
 _test_margin = _sorted_proba[:, -1] - _sorted_proba[:, -2]
+ 
 
-_rng_defer = random.Random(43)  # distinct seed from Task 2's expert simulation
-_expert_pred_test = np.array([simulated_expert(l, _rng_defer) for l in _test_labels])
-
+random.seed(43)
+_expert_pred_test = np.array([simulated_expert(l) for l in _test_labels])
+ 
 _onehot_test = np.eye(4)[_clf_pred_test]
 _X_defer_test = np.column_stack([_test_confidence, _test_margin, _onehot_test])
 _test_proba_defer = _rejector.predict_proba(_X_defer_test)[:, 1]
 _thresh_per_example = np.array([_per_class_thresh[c] for c in _clf_pred_test])
 _defer_decision = (_test_proba_defer >= _thresh_per_example).astype(int)
-
+ 
 _final_pred = np.where(_defer_decision == 1, _expert_pred_test, _clf_pred_test)
 _y_test_arr = np.array(_test_labels)
-
+ 
 _l2d_system_accuracy = (_final_pred == _y_test_arr).mean()
 _l2d_deferral_rate = _defer_decision.mean()
 _l2d_oracle_upper_bound = (
     (_clf_pred_test == _y_test_arr) | (_expert_pred_test == _y_test_arr)
 ).mean()
-
+ 
 _l2d_per_class = {}
 for _label, _name in LABEL_NAMES.items():
     _mask = _y_test_arr == _label
@@ -405,18 +429,6 @@ for _label, _name in LABEL_NAMES.items():
         "defer_rate": round(_defer_decision[_mask].mean() * 100, 2),
         "system_acc": round((_final_pred[_mask] == _y_test_arr[_mask]).mean() * 100, 2),
     }
-
-
-def learning_to_defer_view(request):
-    context = {
-        "classifier_only_accuracy": round(_accuracy * 100, 2),
-        "expert_only_accuracy": round(_expert_accuracy * 100, 2),
-        "system_accuracy": round(_l2d_system_accuracy * 100, 2),
-        "oracle_upper_bound": round(_l2d_oracle_upper_bound * 100, 2),
-        "deferral_rate": round(_l2d_deferral_rate * 100, 2),
-        "per_class": _l2d_per_class,
-    }
-    return render(request, "project3/learning_to_defer.html", context)
 
 
 # Task 4: active learning for expert competence discovery

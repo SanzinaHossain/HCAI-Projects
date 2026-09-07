@@ -1,43 +1,278 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Task 4: Active Learning for Expert Competence Discovery</h1>
+{% load static %}
 
-<p><strong>Classifier-only accuracy:</strong> {{ classifier_only_accuracy }}%</p>
-<p><strong>Total training examples available:</strong> {{ total_available_examples }}</p>
+<!DOCTYPE html>
+<html lang="en">
 
-<h2>Recommended strategy: {{ recommended_strategy }}</h2>
-<p>
-  Using just <strong>{{ recommended_budget }}</strong> expert queries
-  (out of {{ total_available_examples }} available) with the hybrid strategy:
-</p>
-<p><strong>System accuracy:</strong> {{ recommended_result.system_accuracy }}%</p>
-<p><strong>Deferral rate:</strong> {{ recommended_result.deferral_rate }}%</p>
+<head>
 
-<h2>Learning curves: system accuracy vs. number of expert queries</h2>
-<table>
-  <tr>
-    <th>Queries</th>
-    <th>Uncertainty sampling</th>
-    <th>Random sampling</th>
-    <th>Hybrid (recommended)</th>
-  </tr>
-  {% for row in curve_rows %}
-  <tr>
-    <td>{{ row.queries }}</td>
-    <td>{{ row.uncertainty_acc }}%</td>
-    <td>{{ row.random_acc }}%</td>
-    <td>{{ row.hybrid_acc }}%</td>
-  </tr>
-  {% endfor %}
-</table>
+    <meta charset="UTF-8">
 
-<p>
-  Note: pure uncertainty sampling (querying only the classifier's
-  lowest-confidence examples) collapses at low query budgets because the
-  resulting labeled pool is unrepresentative of the full confidence
-  distribution, miscalibrating the deferral threshold. The hybrid strategy
-  (50% uncertainty + 50% random queries) avoids this by keeping the labeled
-  pool representative while still concentrating queries on the
-  decision-relevant region.
-</p>
-{% endblock %}
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Active Learning (Task 4)</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'project3/style.css' %}"
+    >
+
+</head>
+
+
+<body>
+
+<div class="page">
+
+
+    <!-- ================================================== -->
+    <!-- HEADER -->
+    <!-- ================================================== -->
+
+    <header class="header">
+
+        <div>
+
+            <h1>Active Learning for Expert Competence Discovery</h1>
+
+        </div>
+
+
+        <div style="display: flex; gap: 12px;">
+
+            <a
+                href="/"
+                class="home-button"
+            >
+                Home
+            </a>
+
+
+        </div>
+
+    </header>
+
+
+
+    <!-- ================================================== -->
+    <!-- OVERALL PERFORMANCE -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Overall Performance</h2>
+
+        <p class="section-description">
+            Classifier baseline vs. the recommended active-learning system
+        </p>
+
+
+        <div class="overall-grid">
+
+
+            <!-- CLASSIFIER BASELINE -->
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Classifier-only
+                </div>
+
+                <div class="accuracy">
+                    {{ classifier_only_accuracy }}%
+                </div>
+
+                <div class="card-description">
+                    Full test-set accuracy, no expert
+                </div>
+
+            </div>
+
+
+            <!-- RECOMMENDED SYSTEM -->
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Active-Learning System
+                </div>
+
+                <div class="accuracy">
+                    {{ recommended_result.system_accuracy }}%
+                </div>
+
+                <div class="card-description">
+                    With {{ recommended_budget }} expert queries
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- RECOMMENDED STRATEGY -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Recommended Strategy: {{ recommended_strategy|title }}</h2>
+
+        <p class="section-description">
+            Out of {{ total_available_examples }} available training examples, this
+            strategy reaches near-full-supervision performance using far fewer expert queries
+        </p>
+
+
+        <div class="overall-grid">
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Expert Queries Used
+                </div>
+
+                <div class="accuracy">
+                    {{ recommended_budget }}
+                </div>
+
+                <div class="card-description">
+                    Out of {{ total_available_examples }} available
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Deferral Rate
+                </div>
+
+                <div class="accuracy">
+                    {{ recommended_result.deferral_rate }}%
+                </div>
+
+                <div class="card-description">
+                    Share of test examples sent to the expert
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- LEARNING CURVES -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Learning Curves</h2>
+
+        <p class="section-description">
+            System accuracy vs. number of expert queries, by query-selection strategy
+        </p>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Queries</th>
+
+                        <th>Uncertainty Sampling</th>
+
+                        <th>Random Sampling</th>
+
+                        <th>Hybrid (Recommended)</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for row in curve_rows %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ row.queries }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ row.uncertainty_acc }}%
+                        </td>
+
+                        <td>
+                            {{ row.random_acc }}%
+                        </td>
+
+                        <td>
+                            {{ row.hybrid_acc }}%
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- NOTES -->
+    <!-- ================================================== -->
+
+    <section class="section dataset-section">
+
+        <div>
+
+            <h2>Why Hybrid?</h2>
+
+            <p>
+                Pure uncertainty sampling (querying only the classifier's
+                lowest-confidence examples) collapses at low query budgets
+                because the resulting labeled pool is unrepresentative of
+                the full confidence distribution, miscalibrating the
+                deferral threshold. The hybrid strategy (50% uncertainty +
+                50% random queries) avoids this by keeping the labeled pool
+                representative of the full distribution while still
+                concentrating queries on the decision-relevant region.
+            </p>
+
+        </div>
+
+    </section>
+
+
+</div>
+
+</body>
+
+</html>

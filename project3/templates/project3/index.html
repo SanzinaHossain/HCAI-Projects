@@ -12,7 +12,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Active Learning</title>
+    <title>AG News Classifier</title>
 
     <link
         rel="stylesheet"
@@ -35,7 +35,7 @@
 
         <div>
 
-            <h1>Active Learning</h1>
+            <h1>AG News Classifier</h1>
 
             <p class="subtitle">
                 Classifier and expert performance on AG News
@@ -44,12 +44,31 @@
         </div>
 
 
-        <a
-            href="/"
-            class="home-button"
-        >
-            Home
-        </a>
+        <div style="display: flex; gap: 12px;">
+
+            <a
+                href="/"
+                class="home-button"
+            >
+                Home
+            </a>
+
+            <a
+                href="{% url 'project3:active_learning' %}"
+                class="home-button"
+            >
+                Active Learning Strategy
+            </a>
+
+            <a
+                href="{% static 'project3/report.pdf' %}"
+                class="home-button"
+                download
+            >
+                Download Report
+            </a>
+
+        </div>
 
     </header>
 
@@ -182,6 +201,139 @@
 
 
     <!-- ================================================== -->
+    <!-- LEARNING-TO-DEFER PERFORMANCE (Task 3) -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Learning-to-Defer Performance</h2>
+
+        <p class="section-description">
+            System accuracy when the classifier can choose to defer to the expert
+        </p>
+
+
+        <div class="overall-grid">
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Classifier-only
+                </div>
+
+                <div class="accuracy">
+                    {{ classifier_accuracy }}%
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Expert-only
+                </div>
+
+                <div class="accuracy">
+                    {{ expert_accuracy }}%
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Learning-to-Defer System
+                </div>
+
+                <div class="accuracy">
+                    {{ l2d_system_accuracy }}%
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Oracle Upper Bound
+                </div>
+
+                <div class="accuracy">
+                    {{ l2d_oracle_upper_bound }}%
+                </div>
+
+                <div class="card-description">
+                    Best possible with perfect deferral
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <p class="section-description">
+            Overall deferral rate: <strong>{{ l2d_deferral_rate }}%</strong>
+        </p>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Class</th>
+
+                        <th>Deferral Rate</th>
+
+                        <th>System Accuracy</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for name, stats in l2d_per_class.items %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ name }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ stats.defer_rate }}%
+                        </td>
+
+                        <td>
+                            {{ stats.system_acc }}%
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
     <!-- SPECIFIC NEWS -->
     <!-- ================================================== -->
 
@@ -190,7 +342,7 @@
         <h2>Specific News</h2>
 
         <p class="section-description">
-            Select a news article to see the classifier and expert predictions
+            Select a news article to see the classifier, expert, and learning-to-defer system predictions
         </p>
 
 
@@ -306,6 +458,41 @@
 
 
                 {% if news_result.expert_correct %}
+
+                    <div class="result correct">
+                        ✓ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="result incorrect">
+                        ✗ Incorrect
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- SYSTEM DECISION (Task 3: Learning-to-Defer) -->
+
+            <div class="prediction-card">
+
+                <span>
+                    System Decision (Task 3)
+                </span>
+
+                <strong>
+                    {% if news_result.deferred %}Deferred to Expert{% else %}Used Classifier{% endif %}
+                </strong>
+
+                <div class="news-label" style="margin-top: 8px;">
+                    Final prediction: {{ news_result.final_prediction }}
+                </div>
+
+
+                {% if news_result.final_correct %}
 
                     <div class="result correct">
                         ✓ Correct
