@@ -15,10 +15,5 @@ urlpatterns = [
         name="index"
     ),
 
-    path(
-        "simulated/",
-        views.simulated_expert_view,
-        name="simulated"
-    ),
-
+   
 ]

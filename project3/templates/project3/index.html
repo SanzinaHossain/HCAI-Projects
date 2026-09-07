@@ -21,11 +21,15 @@
 
 </head>
 
+
 <body>
 
 <div class="page">
 
+
+    <!-- ================================================== -->
     <!-- HEADER -->
+    <!-- ================================================== -->
 
     <header class="header">
 
@@ -39,6 +43,7 @@
 
         </div>
 
+
         <a
             href="/"
             class="home-button"
@@ -49,7 +54,10 @@
     </header>
 
 
+
+    <!-- ================================================== -->
     <!-- OVERALL PERFORMANCE -->
+    <!-- ================================================== -->
 
     <section class="section">
 
@@ -59,7 +67,11 @@
             Accuracy across the complete test dataset
         </p>
 
+
         <div class="overall-grid">
+
+
+            <!-- CLASSIFIER -->
 
             <div class="accuracy-card">
 
@@ -78,6 +90,8 @@
             </div>
 
 
+            <!-- EXPERT -->
+
             <div class="accuracy-card">
 
                 <div class="card-label">
@@ -94,12 +108,16 @@
 
             </div>
 
+
         </div>
 
     </section>
 
 
-    <!-- CATEGORY ACCURACY -->
+
+    <!-- ================================================== -->
+    <!-- CATEGORY PERFORMANCE -->
+    <!-- ================================================== -->
 
     <section class="section">
 
@@ -117,12 +135,17 @@
                 <thead>
 
                     <tr>
+
                         <th>Category</th>
+
                         <th>Classifier</th>
+
                         <th>Expert</th>
+
                     </tr>
 
                 </thead>
+
 
                 <tbody>
 
@@ -157,16 +180,21 @@
     </section>
 
 
+
+    <!-- ================================================== -->
     <!-- SPECIFIC NEWS -->
+    <!-- ================================================== -->
 
     <section class="section">
 
         <h2>Specific News</h2>
 
         <p class="section-description">
-            Select a news article to compare the classifier and expert predictions
+            Select a news article to see the classifier and expert predictions
         </p>
 
+
+        <!-- NEWS SELECTOR -->
 
         <form
             method="get"
@@ -176,20 +204,21 @@
             <select
                 name="news"
                 class="news-select"
+                size="6"
             >
 
                 {% for news in news_options %}
 
-                    <option
-                        value="{{ news.index }}"
-                        {% if selected_news == news.index %}
-                            selected
-                        {% endif %}
-                    >
+                <option
+                    value="{{ news.index }}"
+                    {% if selected_news == news.index %}
+                        selected
+                    {% endif %}
+                >
 
-                        {{ news.index }} — {{ news.text }}
+                    {{ news.index }} — {{ news.text }}
 
-                    </option>
+                </option>
 
                 {% endfor %}
 
@@ -206,7 +235,10 @@
         </form>
 
 
-        <!-- NEWS ARTICLE -->
+
+        <!-- ================================================== -->
+        <!-- SELECTED ARTICLE -->
+        <!-- ================================================== -->
 
         <div class="news-article">
 
@@ -221,23 +253,12 @@
         </div>
 
 
+
+        <!-- ================================================== -->
         <!-- PREDICTIONS -->
+        <!-- ================================================== -->
 
         <div class="prediction-grid">
-
-            <!-- TRUE CATEGORY -->
-
-            <div class="prediction-card">
-
-                <span>
-                    True Category
-                </span>
-
-                <strong>
-                    {{ news_result.true_category }}
-                </strong>
-
-            </div>
 
 
             <!-- CLASSIFIER -->
@@ -251,6 +272,7 @@
                 <strong>
                     {{ news_result.classifier }}
                 </strong>
+
 
                 {% if news_result.classifier_correct %}
 
@@ -269,6 +291,7 @@
             </div>
 
 
+
             <!-- EXPERT -->
 
             <div class="prediction-card">
@@ -280,6 +303,7 @@
                 <strong>
                     {{ news_result.expert }}
                 </strong>
+
 
                 {% if news_result.expert_correct %}
 
@@ -297,14 +321,19 @@
 
             </div>
 
+
         </div>
 
     </section>
 
 
+
+    <!-- ================================================== -->
     <!-- DATASET -->
+    <!-- ================================================== -->
 
     <section class="section dataset-section">
+
 
         <div>
 
@@ -318,6 +347,7 @@
 
 
         <div class="dataset-stats">
+
 
             <div>
 
@@ -344,9 +374,11 @@
 
             </div>
 
+
         </div>
 
     </section>
+
 
 </div>
 
