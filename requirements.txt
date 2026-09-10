@@ -1,0 +1,27 @@
+# Django Framework
+Django>=5.0,<6.0
+
+# Data Processing
+numpy>=1.26.0
+pandas>=2.0.0
+
+# Machine Learning
+scikit-learn>=1.4.0
+scipy>=1.11.0
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Project 2 Dataset
+palmerpenguins>=0.1.4
+
+# Project 3 Dataset / NLP Utilities
+datasets>=2.18.0
+
+# Image and File Processing
+Pillow>=10.0.0
+
+# Utility Packages
+requests>=2.31.0
+python-dotenv>=1.0.0

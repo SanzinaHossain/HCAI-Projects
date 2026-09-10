@@ -1,0 +1,150 @@
+{% extends 'project4/base.html' %} {% block title %}Preference Task · Movie
+Preference Study{% endblock %} {% block content %}
+<section class="panel">
+  <div class="page-nav">
+    <a class="back-home" href="{% url 'project4:landing' %}">← Project 4 Home</a
+    ><span
+      >Method {{ method_number }} of 2 · Task {{ index }} of {{ total }}</span
+    >
+  </div>
+  <div class="progress-row">
+    <div class="progress">
+      {% if kind == 'pairwise' %}Two-movie choice{% else %}Ten-movie ranking{% endif %} · {{ index }} / {{ total }}
+    </div>
+    <div class="progress-track" aria-hidden="true">
+      <span style="width: {{ progress_pct }}%"></span>
+    </div>
+  </div>
+
+  {% if kind == 'pairwise' %}
+  <span class="pill">Method: Pairwise choice</span>
+  <h2>Which movie would you rather watch?</h2>
+  <p class="lead compact">
+    Choose the one that appeals to you personally. The model learns from the
+    direction of your choice, not from whether it agrees with IMDb ratings.
+  </p>
+  {% if error %}
+  <div class="note error">{{ error }}</div>
+  {% endif %}
+
+  <details class="info-toggle">
+    <summary>
+      <span class="info-icon">i</span> What does my answer tell the model?
+    </summary>
+    <div class="toggle-content">
+      <p>
+        If you choose Movie A over Movie B, the Bradley–Terry model receives one
+        preference: <b>A is preferred to B</b>. It then adjusts the hidden
+        preference weights so movies with features similar to A become more
+        likely to receive a higher utility score.
+      </p>
+    </div>
+  </details>
+  {% include 'project4/_movie_field_guide.html' %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="movie-grid pair">
+      {% for m in movies %}
+      <button
+        class="movie"
+        type="submit"
+        name="winner"
+        value="{{ m.id }}"
+        aria-label="Choose {{ m.title }}"
+      >
+        <div class="poster" aria-hidden="true">{{ m.title|slice:':1' }}</div>
+        <h3>{{ m.title }}</h3>
+        <p>{{ m.year }} · {{ m.genres }}</p>
+        <div class="movie-meta">
+          <span><b>Duration:</b> {{ m.duration }} min</span>
+          <span><b>Rating:</b> {{ m.rating }}</span>
+          <span><b>IMDb:</b> {{ m.imdb_score }}</span>
+          <span><b>Language:</b> {{ m.language }}</span>
+        </div>
+        <strong class="choose-label">Choose this movie</strong>
+      </button>
+      {% endfor %}
+    </div>
+  </form>
+  {% else %}
+  <span class="pill">Method: Ten-movie ranking</span>
+  <h2>Rank these movies from most to least preferred</h2>
+  <p class="lead compact">
+    Position 1 should be the movie you would most like to watch. Position 10
+    should be the movie you would least like to watch.
+  </p>
+  {% if error %}
+  <div class="note error">{{ error }}</div>
+  {% endif %}
+
+  <details class="info-toggle" open>
+    <summary><span class="info-icon">i</span> How do I move a movie?</summary>
+    <div class="toggle-content">
+      <p>
+        You can <b>drag a row</b> to a new position, or use the <b>↑ Up</b> and
+        <b>↓ Down</b> buttons. The numbered circles automatically update. This
+        makes the ranking usable with a mouse, keyboard, or touch device.
+      </p>
+    </div>
+  </details>
+  <details class="info-toggle">
+    <summary>
+      <span class="info-icon">i</span> How does one ranking teach the model?
+    </summary>
+    <div class="toggle-content">
+      <p>
+        The Plackett–Luce model reads your order as a sequence: your #1 movie
+        was preferred over all movies below it, then your #2 movie was preferred
+        over everything still below it, and so on.
+      </p>
+    </div>
+  </details>
+  {% include 'project4/_movie_field_guide.html' %}
+
+  <form method="post" id="rankForm">
+    {% csrf_token %}
+    <input type="hidden" name="ranking" id="rankingInput" />
+    <div id="rankingList" class="rank-list" aria-label="Movie ranking list">
+      {% for m in movies %}
+      <div class="rank-item" draggable="true" data-id="{{ m.id }}" tabindex="0">
+        <span class="handle" aria-hidden="true">↕</span>
+        <span class="rank-number" aria-label="Current rank"
+          >{{ forloop.counter }}</span
+        >
+        <div class="rank-copy">
+          <b>{{ m.title }}</b>
+          <small
+            >{{ m.year }} · {{ m.genres }} · {{ m.duration }} min · {{ m.rating }} · IMDb {{ m.imdb_score }} · {{ m.language }}</small
+          >
+        </div>
+        <div class="rank-actions">
+          <button
+            type="button"
+            class="move-btn"
+            data-move="up"
+            aria-label="Move {{ m.title }} up"
+          >
+            ↑ Up
+          </button>
+          <button
+            type="button"
+            class="move-btn"
+            data-move="down"
+            aria-label="Move {{ m.title }} down"
+          >
+            ↓ Down
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="note">
+      <b>Before continuing:</b> review the numbers from 1 to 10. The complete
+      order will be saved when you click the button below.
+    </div>
+    <button class="btn" type="submit">Save this ranking & continue →</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

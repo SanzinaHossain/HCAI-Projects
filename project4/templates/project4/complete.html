@@ -1,0 +1,101 @@
+{% extends 'project4/base.html' %} {% block title %}Study Complete · Movie
+Preference Study{% endblock %} {% block content %}
+<section class="panel">
+  <div class="page-nav">
+    <a class="back-home" href="{% url 'project4:landing' %}">← Project 4 Home</a
+    ><span>Step 5 of 5 · Complete</span>
+  </div>
+  <span class="pill">Study complete</span>
+  <h2>Thank you — the demonstration is finished.</h2>
+  <p class="lead compact">
+    You taught two separate preference models using two different interfaces.
+    Both models were then checked using the same 8 final choices that neither
+    model had seen during learning.
+  </p>
+
+  <div class="results">
+    <div>
+      <b>{{ pair_acc|floatformat:2 }}</b><span>Pairwise-model agreement</span>
+    </div>
+    <div>
+      <b>{{ rank_acc|floatformat:2 }}</b><span>Ranking-model agreement</span>
+    </div>
+  </div>
+
+  <details class="info-toggle" open>
+    <summary>
+      <span class="info-icon">i</span> What do these agreement scores mean?
+    </summary>
+    <div class="toggle-content">
+      <p>
+        The score is a proportion from 0 to 1. For example, <b>0.75</b> means
+        that model predicted 75% of your held-out choices in the same direction
+        you actually chose. With only 8 validation choices from one person, this
+        is a demonstration score, not a scientific conclusion.
+      </p>
+    </div>
+  </details>
+
+  <details class="info-toggle">
+    <summary><span class="info-icon">i</span> Which method “won”?</summary>
+    <div class="toggle-content">
+      <p>
+        No scientific winner can be declared from one demonstration session. In
+        the proposed real study, the analysis would compare participant-level
+        predictive agreement, ease, confidence, and completion time across many
+        participants, with paired statistical analysis, effect sizes, confidence
+        intervals, and an order-effect check.
+      </p>
+    </div>
+  </details>
+
+  <div class="study-summary">
+    <h3>Your demonstration session</h3>
+    <div class="summary-grid">
+      <div><b>Method order</b><span>{{ order_display }}</span></div>
+      <div>
+        <b>Two-movie method time</b
+        ><span
+          >{% if pair_time is not None %}{{ pair_time|floatformat:0 }} seconds{% else %}Not recorded{% endif %}</span
+        >
+      </div>
+      <div>
+        <b>Ten-movie ranking time</b
+        ><span
+          >{% if rank_time is not None %}{{ rank_time|floatformat:0 }} seconds{% else %}Not recorded{% endif %}</span
+        >
+      </div>
+      <div>
+        <b>Validation choices</b><span>8 held-out two-movie decisions</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Optional demonstration recommendations</h3>
+  <p class="muted">
+    These recommendations are generated only after the study, using the average
+    of the two learned preference vectors. They are excluded from earlier tasks,
+    so they cannot influence the model comparison.
+  </p>
+  <div class="recommend">
+    {% for m in recs %}
+    <div class="mini">
+      <b>{{ m.title }}</b><span>{{ m.year }} · {{ m.genres }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="{% url 'project4:landing' %}"
+      >⌂ Go to Project 4 Home</a
+    >
+    <a class="btn secondary" href="{% url 'project4:report' %}"
+      >↓ Download full project report</a
+    >
+    <a class="btn quiet" href="/">Main Site Home</a>
+    <a class="btn quiet" href="{% url 'project4:reset' %}"
+      >↻ Start a new session</a
+    >
+  </div>
+</section>
+{% endblock %}

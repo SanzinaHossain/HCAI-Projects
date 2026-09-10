@@ -1,0 +1,464 @@
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    color: #1f2937;
+}
+
+
+.page {
+    width: 90%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 35px 0 60px;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 35px;
+}
+
+
+.header h1 {
+    margin: 0 0 8px;
+    font-size: 34px;
+}
+
+
+.subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 16px;
+}
+
+
+.home-button {
+    text-decoration: none;
+    padding: 11px 20px;
+
+    background: #1f2937;
+    color: white;
+
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+
+.home-button:hover {
+    opacity: 0.85;
+}
+
+
+/* =========================================================
+   SECTIONS
+   ========================================================= */
+
+.section {
+    background: white;
+
+    border-radius: 14px;
+
+    padding: 28px;
+
+    margin-bottom: 28px;
+
+    box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+
+.section h2 {
+    margin: 0 0 7px;
+    font-size: 23px;
+}
+
+
+.section-description {
+    margin: 0 0 24px;
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   OVERALL PERFORMANCE
+   ========================================================= */
+
+.overall-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 22px;
+}
+
+
+.accuracy-card {
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    padding: 25px;
+
+    text-align: center;
+}
+
+
+.card-label {
+    font-size: 16px;
+    font-weight: 600;
+
+    margin-bottom: 12px;
+}
+
+
+.accuracy {
+    font-size: 38px;
+    font-weight: 700;
+
+    margin-bottom: 8px;
+}
+
+
+.card-description {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.table-container {
+    overflow-x: auto;
+}
+
+
+table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+th,
+td {
+    padding: 15px 16px;
+
+    text-align: left;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+
+th {
+    background: #f8fafc;
+
+    font-size: 14px;
+}
+
+
+td {
+    font-size: 15px;
+}
+
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   NEWS FORM
+   ========================================================= */
+
+.news-form {
+    display: flex;
+
+    gap: 15px;
+
+    align-items: flex-start;
+
+    margin-bottom: 25px;
+}
+
+
+.news-select {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 10px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    background: white;
+
+    font-size: 14px;
+
+    height: 145px;
+}
+
+
+.news-select option {
+    padding: 7px;
+}
+
+
+.show-button {
+    border: none;
+
+    padding: 12px 20px;
+
+    border-radius: 8px;
+
+    background: #1f2937;
+
+    color: white;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.show-button:hover {
+    opacity: 0.85;
+}
+
+
+/* =========================================================
+   NEWS ARTICLE
+   ========================================================= */
+
+.news-article {
+    background: #f8fafc;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 10px;
+
+    padding: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.news-label {
+    font-size: 13px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    color: #6b7280;
+
+    margin-bottom: 10px;
+}
+
+
+.news-text {
+    line-height: 1.6;
+
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   PREDICTIONS
+   ========================================================= */
+
+.prediction-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 20px;
+}
+
+
+.prediction-card {
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    padding: 23px;
+
+    text-align: center;
+}
+
+
+.prediction-card span {
+    display: block;
+
+    color: #6b7280;
+
+    font-size: 14px;
+
+    margin-bottom: 10px;
+}
+
+
+.prediction-card strong {
+    display: block;
+
+    font-size: 25px;
+
+    margin-bottom: 12px;
+}
+
+
+.result {
+    font-size: 14px;
+
+    font-weight: 600;
+}
+
+
+.correct {
+    color: #15803d;
+}
+
+
+.incorrect {
+    color: #dc2626;
+}
+
+
+/* =========================================================
+   DATASET
+   ========================================================= */
+
+.dataset-section {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+}
+
+
+.dataset-section h2 {
+    margin-bottom: 5px;
+}
+
+
+.dataset-section p {
+    margin: 0;
+
+    color: #6b7280;
+}
+
+
+.dataset-stats {
+    display: flex;
+
+    gap: 45px;
+}
+
+
+.dataset-stats div {
+    text-align: right;
+}
+
+
+.dataset-stats span {
+    display: block;
+
+    color: #6b7280;
+
+    font-size: 13px;
+
+    margin-bottom: 5px;
+}
+
+
+.dataset-stats strong {
+    font-size: 20px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .page {
+        width: 94%;
+    }
+
+
+    .header {
+        align-items: flex-start;
+
+        gap: 20px;
+    }
+
+
+    .header h1 {
+        font-size: 28px;
+    }
+
+
+    .overall-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .prediction-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .news-form {
+        flex-direction: column;
+    }
+
+
+    .news-select {
+        width: 100%;
+    }
+
+
+    .show-button {
+        width: 100%;
+    }
+
+
+    .dataset-section {
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 20px;
+    }
+
+
+    .dataset-stats {
+        gap: 30px;
+    }
+
+
+    .dataset-stats div {
+        text-align: left;
+    }
+
+}

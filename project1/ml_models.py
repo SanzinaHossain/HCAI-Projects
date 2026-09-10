@@ -1,197 +1,297 @@
-# demos/ml_models.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
 import numpy as np
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-from sklearn.preprocessing import LabelEncoder
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-class ModelTrainer:
-    """
-    Handles model training and evaluation with uploaded CSV data (CLASSIFICATION)
-    """
-    
-    def __init__(self):
-        # Initialize with no data
-        self.X_full = None
-        self.y_full = None
-        self.data = None
-        self.target_column = None
-    
-    def load_data(self, file_path):
-        """Load dataset from CSV file path"""
-        self.data = pd.read_csv(file_path)
-        print(f"Dataset loaded: {self.data.shape}")
-        print(f"Columns available: {list(self.data.columns)}")
-        return self.data
-    
-    def prepare_data(self, target_column):
-        """Prepare features and target from loaded data"""
-        if self.data is None:
-            raise ValueError("No data loaded. Call load_data() first.")
-        
-        self.target_column = target_column
-        
-        # Separate features and target
-        X = self.data.drop(columns=[target_column])
-        y = self.data[target_column]
-        
-        # Handle categorical features (convert to numeric)
-        X = self._encode_categorical_features(X)
-        
-        # Handle categorical target
-        if y.dtype == 'object' or pd.api.types.is_string_dtype(y):
-            le = LabelEncoder()
-            y = le.fit_transform(y)
-            print(f"Target classes: {dict(zip(le.classes_, range(len(le.classes_))))}")
-        
-        # Convert to numpy arrays
-        self.X_full = X.values.astype(np.float32)
-        self.y_full = np.array(y).astype(np.int32)
-        
-        print(f"Prepared data: {self.X_full.shape[0]} samples, {self.X_full.shape[1]} features")
-        return self.X_full, self.y_full
-    
-    def _encode_categorical_features(self, X):
-        """Convert categorical columns to numeric using one-hot encoding"""
-        # Select categorical columns
-        categorical_cols = X.select_dtypes(include=['object']).columns
-        
-        if len(categorical_cols) > 0:
-            print(f"Encoding categorical columns: {list(categorical_cols)}")
-            # One-hot encode categorical columns
-            X = pd.get_dummies(X, columns=categorical_cols, drop_first=True)
-        
-        # Handle any remaining non-numeric columns
-        for col in X.columns:
-            if X[col].dtype == 'object':
-                le = LabelEncoder()
-                X[col] = le.fit_transform(X[col].astype(str))
-        
-        return X
-    
-    def train_model(self, model_name, split_percentage, hyperparams=None):
-        """Train the selected model with given split percentage and hyperparams"""
-    
-        if self.X_full is None or self.y_full is None:
-            raise ValueError("No data prepared. Call prepare_data() first.")
-    
-        if hyperparams is None:
-            hyperparams = {}
 
-        test_size = 1 - (split_percentage / 100)
-        X_train, X_test, y_train, y_test = train_test_split(
-            self.X_full, self.y_full,
-            test_size=test_size,
-            random_state=42,
-            stratify=self.y_full
+@dataclass
+class TrainingResult:
+    problem_type: str
+    model_label: str
+    primary_metric_name: str
+    primary_metric_value: float
+    secondary_metrics: dict[str, float]
+    interpretation: str
+    confusion_matrix: list[list[int]] | None = None
+    class_names: list[str] | None = None
+    classification_report: list[dict[str, Any]] | None = None
+    predictions_preview: list[dict[str, Any]] | None = None
+
+
+MODEL_LABELS = {
+    "logistic_regression": "Logistic Regression",
+    "decision_tree": "Decision Tree",
+    "random_forest": "Random Forest",
+    "knn": "K-Nearest Neighbours",
+    "svm": "Support Vector Machine",
+}
+
+
+def detect_problem_type(y: pd.Series) -> str:
+    """Use a simple, explainable rule to identify classification vs regression."""
+    if (
+        pd.api.types.is_object_dtype(y)
+        or pd.api.types.is_bool_dtype(y)
+        or pd.api.types.is_categorical_dtype(y)
+    ):
+        return "classification"
+
+    unique_count = y.nunique(dropna=True)
+    unique_ratio = unique_count / max(len(y), 1)
+
+    if unique_count <= 20 or unique_ratio < 0.08:
+        return "classification"
+    return "regression"
+
+
+def _build_model(model_name: str, problem_type: str, fit_intercept: bool):
+    if problem_type == "classification":
+        models = {
+            "logistic_regression": LogisticRegression(
+                max_iter=2000,
+                fit_intercept=fit_intercept,
+                random_state=42,
+            ),
+            "decision_tree": DecisionTreeClassifier(
+                max_depth=5,
+                random_state=42,
+            ),
+            "random_forest": RandomForestClassifier(
+                n_estimators=200,
+                random_state=42,
+            ),
+            "knn": KNeighborsClassifier(n_neighbors=5),
+            "svm": SVC(probability=True, random_state=42),
+        }
+    else:
+        models = {
+            "logistic_regression": LinearRegression(
+                fit_intercept=fit_intercept
+            ),
+            "decision_tree": DecisionTreeRegressor(
+                max_depth=5,
+                random_state=42,
+            ),
+            "random_forest": RandomForestRegressor(
+                n_estimators=200,
+                random_state=42,
+            ),
+            "knn": KNeighborsRegressor(n_neighbors=5),
+            "svm": SVR(),
+        }
+
+    if model_name not in models:
+        raise ValueError("The selected model is not supported.")
+    return models[model_name]
+
+
+def _interpret_score(problem_type: str, score: float) -> str:
+    if problem_type == "classification":
+        if score >= 0.90:
+            return "Excellent: the model predicts most test examples correctly."
+        if score >= 0.80:
+            return "Good: the model performs well, although some mistakes remain."
+        if score >= 0.65:
+            return "Fair: the model finds useful patterns, but it should be improved."
+        return "Weak: the model is struggling to generalize to unseen data."
+
+    if score >= 0.85:
+        return "Excellent: the model explains most of the variation in the target."
+    if score >= 0.65:
+        return "Good: the model captures a useful part of the pattern."
+    if score >= 0.35:
+        return "Fair: the model captures some signal, but predictions may be uncertain."
+    return "Weak: the model does not yet explain the target reliably."
+
+
+def train_model(
+    dataframe: pd.DataFrame,
+    target_column: str,
+    model_name: str,
+    test_size_percent: int,
+    normalize: bool,
+    fit_intercept: bool,
+) -> TrainingResult:
+    if target_column not in dataframe.columns:
+        raise ValueError("Please select a valid target column.")
+
+    clean_df = dataframe.copy()
+    clean_df = clean_df.dropna(subset=[target_column])
+
+    if clean_df.empty:
+        raise ValueError("The selected target column contains no usable values.")
+
+    X = clean_df.drop(columns=[target_column])
+    y = clean_df[target_column]
+
+    if X.shape[1] == 0:
+        raise ValueError("The dataset needs at least one input column.")
+
+    problem_type = detect_problem_type(y)
+
+    numeric_columns = X.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_columns = [
+        column for column in X.columns if column not in numeric_columns
+    ]
+
+    numeric_steps = [("imputer", SimpleImputer(strategy="median"))]
+    if normalize:
+        numeric_steps.append(("scaler", StandardScaler()))
+
+    transformers = []
+    if numeric_columns:
+        transformers.append(
+            ("numeric", Pipeline(numeric_steps), numeric_columns)
         )
-    
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        
-        # Pass hyperparams to model
-        model = self._get_model(model_name, hyperparams)
-        model.fit(X_train_scaled, y_train)
-        
-        y_pred = model.predict(X_test_scaled)
-        
-        accuracy  = accuracy_score(y_test, y_pred)
-        unique_classes = np.unique(self.y_full)
-        avg = 'binary' if len(unique_classes) == 2 else 'weighted'
-        precision = precision_score(y_test, y_pred, average=avg, zero_division=0)
-        recall    = recall_score(y_test, y_pred, average=avg, zero_division=0)
-        f1        = f1_score(y_test, y_pred, average=avg, zero_division=0)
+    if categorical_columns:
+        transformers.append(
+            (
+                "categorical",
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        (
+                            "encoder",
+                            OneHotEncoder(
+                                handle_unknown="ignore",
+                                sparse_output=False,
+                            ),
+                        ),
+                    ]
+                ),
+                categorical_columns,
+            )
+        )
 
-        metrics = {
-            'Accuracy':  round(accuracy,  4),
-            'Precision': round(precision, 4),
-            'Recall':    round(recall,    4),
-            'F1-Score':  round(f1,        4),
+    preprocessor = ColumnTransformer(
+        transformers=transformers,
+        remainder="drop",
+    )
+
+    model = _build_model(model_name, problem_type, fit_intercept)
+    pipeline = Pipeline(
+        [
+            ("preprocessor", preprocessor),
+            ("model", model),
+        ]
+    )
+
+    stratify = None
+    if problem_type == "classification":
+        value_counts = y.value_counts()
+        if len(value_counts) > 1 and value_counts.min() >= 2:
+            stratify = y
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=test_size_percent / 100,
+        random_state=42,
+        stratify=stratify,
+    )
+
+    pipeline.fit(X_train, y_train)
+    predictions = pipeline.predict(X_test)
+
+    preview = [
+        {
+            "actual": str(actual),
+            "predicted": str(predicted),
         }
+        for actual, predicted in list(zip(y_test.tolist(), predictions.tolist()))[:8]
+    ]
 
-        model_display_names = {
-            'linear_regression': 'Logistic Regression',
-            'decision_tree':     'Decision Tree Classifier',
-            'knn':               'K-Nearest Neighbors',
-            'svm':               'Support Vector Machine',
-            'random_forest':     'Random Forest Classifier',
-        }
+    if problem_type == "classification":
+        accuracy = accuracy_score(y_test, predictions)
+        weighted_f1 = f1_score(
+            y_test,
+            predictions,
+            average="weighted",
+            zero_division=0,
+        )
+        original_labels = sorted(
+            set(y_test.tolist()) | set(predictions.tolist()),
+            key=lambda value: str(value),
+        )
+        labels = [str(value) for value in original_labels]
 
-        return {
-            'model_name':   model_display_names.get(model_name, model_name),
-            'train_split':  split_percentage,
-            'test_split':   100 - split_percentage,
-            'metrics':      metrics,
-            'num_samples':  self.X_full.shape[0],
-            'num_features': self.X_full.shape[1],
-            'num_classes':  len(unique_classes),
-        }
+        report_dict = classification_report(
+            y_test,
+            predictions,
+            output_dict=True,
+            zero_division=0,
+        )
+        report_rows = []
+        for label, values in report_dict.items():
+            if isinstance(values, dict):
+                report_rows.append(
+                    {
+                        "label": str(label),
+                        "precision": round(float(values["precision"]) * 100, 1),
+                        "recall": round(float(values["recall"]) * 100, 1),
+                        "f1": round(float(values["f1-score"]) * 100, 1),
+                        "support": int(values["support"]),
+                    }
+                )
 
+        return TrainingResult(
+            problem_type=problem_type,
+            model_label=MODEL_LABELS[model_name],
+            primary_metric_name="Accuracy",
+            primary_metric_value=round(accuracy * 100, 1),
+            secondary_metrics={
+                "Weighted F1 score": round(weighted_f1 * 100, 1),
+                "Training rows": float(len(X_train)),
+                "Testing rows": float(len(X_test)),
+            },
+            interpretation=_interpret_score(problem_type, accuracy),
+            confusion_matrix=confusion_matrix(
+                y_test,
+                predictions,
+                labels=original_labels,
+            ).tolist() if len(original_labels) else None,
+            class_names=labels,
+            classification_report=report_rows,
+            predictions_preview=preview,
+        )
 
-    def _get_model(self, model_name, hyperparams):
-        """Build model using user-supplied hyperparams with safe fallback defaults."""
+    mae = mean_absolute_error(y_test, predictions)
+    rmse = mean_squared_error(y_test, predictions) ** 0.5
+    r2 = r2_score(y_test, predictions)
 
-        def get(key, default, cast=None):
-            val = hyperparams.get(key, default)
-            if cast:
-                try:
-                    return cast(val)
-                except (ValueError, TypeError):
-                    return default
-            return val
-
-        if model_name == 'linear_regression':
-            return LogisticRegression(
-                fit_intercept = get('fit_intercept', 'true') == 'true',
-                random_state  = 42,
-                max_iter      = 1000,
-            )
-
-        elif model_name == 'decision_tree':
-            return DecisionTreeClassifier(
-                max_depth         = get('max_depth',         5,     int),
-                min_samples_split = get('min_samples_split', 2,     int),
-                min_samples_leaf  = get('min_samples_leaf',  1,     int),
-                criterion         = get('criterion',         'gini'),
-                random_state      = 42,
-            )
-
-        elif model_name == 'knn':
-            return KNeighborsClassifier(
-                n_neighbors = get('n_neighbors', 5,           int),
-                weights     = get('weights',     'uniform'),
-                metric      = get('metric',      'euclidean'),
-                algorithm   = get('algorithm',   'auto'),
-            )
-
-        elif model_name == 'svm':
-            return SVC(
-                C            = get('C',      1,     int),
-                kernel       = get('kernel', 'rbf'),
-                gamma        = get('gamma',  'scale'),
-                degree       = get('degree', 3,     int),
-                random_state = 42,
-            )
-
-        elif model_name == 'random_forest':
-            max_features_val = get('max_features', 'sqrt')
-            if max_features_val == 'none':
-                max_features_val = None
-
-            return RandomForestClassifier(
-                n_estimators      = get('n_estimators',      100, int),
-                max_depth         = get('max_depth',         10,  int),
-                min_samples_split = get('min_samples_split', 2,   int),
-                max_features      = max_features_val,
-                bootstrap         = get('bootstrap', 'true') == 'true',
-                random_state      = 42,
-            )
-
-        raise ValueError(f"Unknown model: {model_name}")
+    return TrainingResult(
+        problem_type=problem_type,
+        model_label=MODEL_LABELS[model_name],
+        primary_metric_name="R² score",
+        primary_metric_value=round(r2 * 100, 1),
+        secondary_metrics={
+            "Mean absolute error": round(float(mae), 3),
+            "Root mean squared error": round(float(rmse), 3),
+            "Training rows": float(len(X_train)),
+            "Testing rows": float(len(X_test)),
+        },
+        interpretation=_interpret_score(problem_type, r2),
+        predictions_preview=preview,
+    )

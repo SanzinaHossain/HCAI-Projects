@@ -25,8 +25,10 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("", include("home.urls")),
     path("home/", include("home.urls")),
-    path("project1/", include("project1.urls")),  # ✅ Added trailing slash
-    path("project2/", include("project2.urls")),  # ✅ Added trailing slash
+    path("project1/", include("project1.urls")), 
+    path("project2/", include("project2.urls")),
+    path("project3/", include("project3.urls")), 
+    path("project4/", include("project4.urls")),  
     path("admin/", admin.site.urls),
-    path("demos/", include("demos.urls")),         # ✅ Kept demos
+    path("demos/", include("demos.urls")),        
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

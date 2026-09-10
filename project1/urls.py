@@ -1,22 +1,13 @@
+from django.urls import path
+
 from . import views
-from django.contrib import admin
-from django.urls import path, include
 
-from django.conf import settings
-from django.conf.urls.static import static
-
-app_name = 'project1'
+app_name = "project1"
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    # path('upload/', views.upload_csv, name='upload'), 
-    # path('plot/', views.generate_plot, name='plot'), 
-    # path('generate-plot/', views.generate_plot_ajax, name='generate_plot_ajax'),
-
-    #urls_for_modeltraining
-    path('mtrain/', views.train, name='mtrain'),
-#     path('train-model-form/', views.train, name='train_model_form'),
-#     path("train/", views.train, name="train"),
+    path("", views.index, name="index"),
+    path("visualize/", views.visualize, name="visualize"),
+    path("train/", views.mtrain, name="mtrain"),
+    path("show-plot/", views.show_plot, name="show_plot"),
+    path("reset/", views.reset, name="reset"),
 ]
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

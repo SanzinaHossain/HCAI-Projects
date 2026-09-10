@@ -1,0 +1,42 @@
+<nav class="stepper" aria-label="Project progress">
+  <a
+    class="step {% if current_step >= 1 %}active{% endif %}"
+    href="{% url 'project1:index' %}"
+  >
+    <span class="step-number"
+      >{% if current_step > 1 %}✓{% else %}1{% endif %}</span
+    >
+    <span>
+      <strong>Upload</strong>
+      <small>Add a CSV file</small>
+    </span>
+  </a>
+
+  <span class="step-line {% if current_step >= 2 %}active{% endif %}"></span>
+
+  <a
+    class="step {% if current_step >= 2 %}active{% endif %}"
+    href="{% url 'project1:visualize' %}"
+  >
+    <span class="step-number"
+      >{% if current_step > 2 %}✓{% else %}2{% endif %}</span
+    >
+    <span>
+      <strong>Review</strong>
+      <small>Understand the data</small>
+    </span>
+  </a>
+
+  <span class="step-line {% if current_step >= 3 %}active{% endif %}"></span>
+
+  <a
+    class="step {% if current_step >= 3 %}active{% endif %}"
+    href="{% url 'project1:mtrain' %}"
+  >
+    <span class="step-number">3</span>
+    <span>
+      <strong>Train</strong>
+      <small>Create the model</small>
+    </span>
+  </a>
+</nav>

@@ -1,8 +1,3 @@
-# from django.http import HttpResponse
-
-
-# def index(request):
-#     return HttpResponse("Hello, world. You're at the polls index.")
 
 from django.http import HttpResponse
 from django.template import loader
@@ -20,7 +15,9 @@ def index(request):
     
     projects = [
         {"name": "Project 1 : Automated Machine Learning", "url_name": "project1:index"},
-        {"name": "Project 2 : Explainability", "url_name": "project2:data"},
+        {"name": "Project 2 : Explainability", "url_name": "project2:project"},
+        {"name": "Project 3 : Active Learning", "url_name": "project3:index"},
+        {"name": "Project 4 : Preference Elicitation", "url_name": "project4:landing"},
     ]
     
     context = { 

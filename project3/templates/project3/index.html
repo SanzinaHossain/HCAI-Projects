@@ -1,0 +1,574 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>AG News Classifier</title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'project3/style.css' %}"
+    >
+
+</head>
+
+
+<body>
+
+<div class="page">
+
+
+    <!-- ================================================== -->
+    <!-- HEADER -->
+    <!-- ================================================== -->
+
+    <header class="header">
+
+        <div>
+
+            <h1>AG News Classifier</h1>
+
+            <p class="subtitle">
+                Classifier and expert performance on AG News
+            </p>
+
+        </div>
+
+
+        <div style="display: flex; gap: 12px;">
+
+            <a
+                href="/"
+                class="home-button"
+            >
+                Home
+            </a>
+
+            <a
+                href="{% url 'project3:active_learning' %}"
+                class="home-button"
+            >
+                Active Learning Strategy
+            </a>
+
+            <a
+                href="{% static 'project3/report.pdf' %}"
+                class="home-button"
+                download
+            >
+                Download Report
+            </a>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- ================================================== -->
+    <!-- OVERALL PERFORMANCE -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Overall Performance</h2>
+
+        <p class="section-description">
+            Accuracy across the complete test dataset
+        </p>
+
+
+        <div class="overall-grid">
+
+
+            <!-- CLASSIFIER -->
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Classifier
+                </div>
+
+                <div class="accuracy">
+                    {{ classifier_accuracy }}%
+                </div>
+
+                <div class="card-description">
+                    Overall test accuracy
+                </div>
+
+            </div>
+
+
+            <!-- EXPERT -->
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Simulated Expert
+                </div>
+
+                <div class="accuracy">
+                    {{ expert_accuracy }}%
+                </div>
+
+                <div class="card-description">
+                    Overall test accuracy
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- CATEGORY PERFORMANCE -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Category Performance</h2>
+
+        <p class="section-description">
+            Accuracy for each AG News category
+        </p>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Category</th>
+
+                        <th>Classifier</th>
+
+                        <th>Expert</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for item in category_data %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ item.name }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ item.classifier }}%
+                        </td>
+
+                        <td>
+                            {{ item.expert }}%
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- LEARNING-TO-DEFER PERFORMANCE (Task 3) -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Learning-to-Defer Performance</h2>
+
+        <p class="section-description">
+            System accuracy when the classifier can choose to defer to the expert
+        </p>
+
+
+        <div class="overall-grid">
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Classifier-only
+                </div>
+
+                <div class="accuracy">
+                    {{ classifier_accuracy }}%
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Expert-only
+                </div>
+
+                <div class="accuracy">
+                    {{ expert_accuracy }}%
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Learning-to-Defer System
+                </div>
+
+                <div class="accuracy">
+                    {{ l2d_system_accuracy }}%
+                </div>
+
+            </div>
+
+
+            <div class="accuracy-card">
+
+                <div class="card-label">
+                    Oracle Upper Bound
+                </div>
+
+                <div class="accuracy">
+                    {{ l2d_oracle_upper_bound }}%
+                </div>
+
+                <div class="card-description">
+                    Best possible with perfect deferral
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <p class="section-description">
+            Overall deferral rate: <strong>{{ l2d_deferral_rate }}%</strong>
+        </p>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Class</th>
+
+                        <th>Deferral Rate</th>
+
+                        <th>System Accuracy</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for name, stats in l2d_per_class.items %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ name }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ stats.defer_rate }}%
+                        </td>
+
+                        <td>
+                            {{ stats.system_acc }}%
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- SPECIFIC NEWS -->
+    <!-- ================================================== -->
+
+    <section class="section">
+
+        <h2>Specific News</h2>
+
+        <p class="section-description">
+            Select a news article to see the classifier, expert, and learning-to-defer system predictions
+        </p>
+
+
+        <!-- NEWS SELECTOR -->
+
+        <form
+            method="get"
+            class="news-form"
+        >
+
+            <select
+                name="news"
+                class="news-select"
+                size="6"
+            >
+
+                {% for news in news_options %}
+
+                <option
+                    value="{{ news.index }}"
+                    {% if selected_news == news.index %}
+                        selected
+                    {% endif %}
+                >
+
+                    {{ news.index }} — {{ news.text }}
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+
+            <button
+                type="submit"
+                class="show-button"
+            >
+                Show News
+            </button>
+
+        </form>
+
+
+
+        <!-- ================================================== -->
+        <!-- SELECTED ARTICLE -->
+        <!-- ================================================== -->
+
+        <div class="news-article">
+
+            <div class="news-label">
+                Selected Article
+            </div>
+
+            <div class="news-text">
+                {{ news_result.text }}
+            </div>
+
+        </div>
+
+
+
+        <!-- ================================================== -->
+        <!-- PREDICTIONS -->
+        <!-- ================================================== -->
+
+        <div class="prediction-grid">
+
+
+            <!-- CLASSIFIER -->
+
+            <div class="prediction-card">
+
+                <span>
+                    Classifier Prediction
+                </span>
+
+                <strong>
+                    {{ news_result.classifier }}
+                </strong>
+
+
+                {% if news_result.classifier_correct %}
+
+                    <div class="result correct">
+                        ✓ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="result incorrect">
+                        ✗ Incorrect
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- EXPERT -->
+
+            <div class="prediction-card">
+
+                <span>
+                    Expert Prediction
+                </span>
+
+                <strong>
+                    {{ news_result.expert }}
+                </strong>
+
+
+                {% if news_result.expert_correct %}
+
+                    <div class="result correct">
+                        ✓ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="result incorrect">
+                        ✗ Incorrect
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- SYSTEM DECISION (Task 3: Learning-to-Defer) -->
+
+            <div class="prediction-card">
+
+                <span>
+                    System Decision (Task 3)
+                </span>
+
+                <strong>
+                    {% if news_result.deferred %}Deferred to Expert{% else %}Used Classifier{% endif %}
+                </strong>
+
+                <div class="news-label" style="margin-top: 8px;">
+                    Final prediction: {{ news_result.final_prediction }}
+                </div>
+
+
+                {% if news_result.final_correct %}
+
+                    <div class="result correct">
+                        ✓ Correct
+                    </div>
+
+                {% else %}
+
+                    <div class="result incorrect">
+                        ✗ Incorrect
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================== -->
+    <!-- DATASET -->
+    <!-- ================================================== -->
+
+    <section class="section dataset-section">
+
+
+        <div>
+
+            <h2>Evaluation Dataset</h2>
+
+            <p>
+                AG News
+            </p>
+
+        </div>
+
+
+        <div class="dataset-stats">
+
+
+            <div>
+
+                <span>
+                    Training samples
+                </span>
+
+                <strong>
+                    {{ train_samples }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Test samples
+                </span>
+
+                <strong>
+                    {{ test_samples }}
+                </strong>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+</div>
+
+</body>
+
+</html>

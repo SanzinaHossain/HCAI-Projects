@@ -1,0 +1,139 @@
+{
+  "classifier_only_accuracy": 91.59,
+  "total_available_examples": 120000,
+  "recommended_strategy": "hybrid",
+  "recommended_budget": 10000,
+  "recommended_result": {
+    "queries": 10000,
+    "system_accuracy": 91.62,
+    "deferral_rate": 0.55
+  },
+  "curves": {
+    "uncertainty": [
+      {
+        "queries": 200,
+        "system_accuracy": 59.36,
+        "deferral_rate": 100.0
+      },
+      {
+        "queries": 500,
+        "system_accuracy": 59.36,
+        "deferral_rate": 100.0
+      },
+      {
+        "queries": 1000,
+        "system_accuracy": 59.36,
+        "deferral_rate": 100.0
+      },
+      {
+        "queries": 2000,
+        "system_accuracy": 59.36,
+        "deferral_rate": 100.0
+      },
+      {
+        "queries": 5000,
+        "system_accuracy": 91.63,
+        "deferral_rate": 0.21
+      },
+      {
+        "queries": 10000,
+        "system_accuracy": 91.61,
+        "deferral_rate": 0.72
+      },
+      {
+        "queries": 20000,
+        "system_accuracy": 91.59,
+        "deferral_rate": 0.37
+      },
+      {
+        "queries": 40000,
+        "system_accuracy": 91.59,
+        "deferral_rate": 0.47
+      }
+    ],
+    "random": [
+      {
+        "queries": 200,
+        "system_accuracy": 91.86,
+        "deferral_rate": 4.22
+      },
+      {
+        "queries": 500,
+        "system_accuracy": 91.66,
+        "deferral_rate": 3.22
+      },
+      {
+        "queries": 1000,
+        "system_accuracy": 91.68,
+        "deferral_rate": 7.92
+      },
+      {
+        "queries": 2000,
+        "system_accuracy": 91.59,
+        "deferral_rate": 0.0
+      },
+      {
+        "queries": 5000,
+        "system_accuracy": 91.7,
+        "deferral_rate": 1.67
+      },
+      {
+        "queries": 10000,
+        "system_accuracy": 91.64,
+        "deferral_rate": 0.99
+      },
+      {
+        "queries": 20000,
+        "system_accuracy": 91.62,
+        "deferral_rate": 0.72
+      },
+      {
+        "queries": 40000,
+        "system_accuracy": 91.55,
+        "deferral_rate": 0.39
+      }
+    ],
+    "hybrid": [
+      {
+        "queries": 200,
+        "system_accuracy": 86.83,
+        "deferral_rate": 21.28
+      },
+      {
+        "queries": 500,
+        "system_accuracy": 89.07,
+        "deferral_rate": 13.28
+      },
+      {
+        "queries": 1000,
+        "system_accuracy": 87.7,
+        "deferral_rate": 18.17
+      },
+      {
+        "queries": 2000,
+        "system_accuracy": 90.89,
+        "deferral_rate": 7.43
+      },
+      {
+        "queries": 5000,
+        "system_accuracy": 91.16,
+        "deferral_rate": 7.34
+      },
+      {
+        "queries": 10000,
+        "system_accuracy": 91.62,
+        "deferral_rate": 0.55
+      },
+      {
+        "queries": 20000,
+        "system_accuracy": 91.59,
+        "deferral_rate": 0.0
+      },
+      {
+        "queries": 40000,
+        "system_accuracy": 91.63,
+        "deferral_rate": 1.24
+      }
+    ]
+  }
+}
