@@ -65,8 +65,6 @@ def consent(request):
 
     if request.method == 'POST':
         study['consented'] = True
-        # Start method timing only after consent, so reading the study
-        # information is not counted as elicitation time.
         study['condition_started'] = time.time()
         request.session.modified = True
         return redirect('project4:task')

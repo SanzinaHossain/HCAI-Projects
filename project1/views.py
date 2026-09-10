@@ -268,8 +268,7 @@ def index(request):
     if request.method == "POST" and form.is_valid():
         uploaded_file = form.cleaned_data["dataset"]
 
-        # Remove a previously uploaded dataset before storing
-        # the new one.
+        
         _clear_uploaded_dataset(request)
 
         original_name = Path(

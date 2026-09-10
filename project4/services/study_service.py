@@ -16,8 +16,7 @@ def build_plan(n_movies, seed=None):
             f'The study needs at least {needed} unique movies, but only {n_movies} are available.'
         )
 
-    # Sampling without replacement means the two training methods and the
-    # validation set do not accidentally reuse a movie in the same session.
+    
     ids = rng.sample(range(n_movies), needed)
     p = 0
 
@@ -36,9 +35,7 @@ def build_plan(n_movies, seed=None):
         validation.append(ids[p:p + 2])
         p += 2
 
-    # Random order is used in the demonstration. In a real deployment, the
-    # recruitment protocol described in the report would enforce equal AB/BA
-    # allocation across the final sample.
+    
     order = rng.choice([['pairwise', 'ranking'], ['ranking', 'pairwise']])
     return {
         'order': order,
