@@ -444,25 +444,11 @@ media/
 
 ---
 
-# 🔮 Future Improvements
-
-Possible improvements:
-
-- Deploy online using cloud platforms
-- Add user authentication
-- Improve UI design
-- Add more machine learning algorithms
-- Docker deployment
-- Real human expert interaction
-
-
----
-
 # 👨‍💻 Author
 
 Human-Centered Artificial Intelligence Course Project
 
-Developed using Django and Machine Learning technologies.
+Developed By Group 7
 
 
 ---
